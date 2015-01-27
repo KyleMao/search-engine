@@ -1,0 +1,9 @@
+# Java
+bin/
+
+
+# OS X
+.DS_Store
+
+# Project specific
+index/
