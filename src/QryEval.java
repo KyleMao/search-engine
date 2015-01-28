@@ -74,8 +74,7 @@ public class QryEval {
     READER = DirectoryReader.open(FSDirectory.open(new File(params.get("indexPath"))));
 
     if (READER == null) {
-      System.err.println(usage);
-      System.exit(1);
+      fatalError(usage);
     }
 
     DocLengthStore s = new DocLengthStore(READER);
@@ -288,15 +287,13 @@ public class QryEval {
         }
         String[] tokenAndField = token.split("\\.");
         if (tokenAndField.length > 2) {
-          System.err.println("Error: Invalid query term");
-          System.exit(1);
+          fatalError("Error: Invalid query term");
         }
-        String[] processedToken = tokenizeQuery(token);
+        String[] processedToken = tokenizeQuery(tokenAndField[0]);
         if (processedToken.length > 1) {
-          System.err.println("Error: Invalid query term");
-          System.exit(1);
+          fatalError("Error: Invalid query term");
         } else if (processedToken.length > 0) {
-          currentOp.add(new QryopIlTerm(token));
+          currentOp.add(new QryopIlTerm(processedToken[0]));
         }
       }
     }
