@@ -111,28 +111,28 @@ public class QryEval {
      */
 
     // A one-word query.
-    printResults("pea",
-        (new QryopSlScore(new QryopIlTerm(tokenizeQuery("pea")[0]))).evaluate(model));
-
-    // A more complex query.
-    printResults("#AND (asparagus broccoli cauliflower #SYN(peapods peas))", (new QryopSlAnd(
-        new QryopIlTerm(tokenizeQuery("asparagus")[0]), new QryopIlTerm(
-            tokenizeQuery("broccoli")[0]), new QryopIlTerm(tokenizeQuery("cauliflower")[0]),
-        new QryopIlSyn(new QryopIlTerm(tokenizeQuery("peapods")[0]), new QryopIlTerm(
-            tokenizeQuery("peas")[0])))).evaluate(model));
-
-    // A different way to create the previous query. This doesn't use
-    // a stack, but it may make it easier to see how you would parse a
-    // query with a stack-based architecture.
-    Qryop op1 = new QryopSlAnd();
-    op1.add(new QryopIlTerm(tokenizeQuery("asparagus")[0]));
-    op1.add(new QryopIlTerm(tokenizeQuery("broccoli")[0]));
-    op1.add(new QryopIlTerm(tokenizeQuery("cauliflower")[0]));
-    Qryop op2 = new QryopIlSyn();
-    op2.add(new QryopIlTerm(tokenizeQuery("peapods")[0]));
-    op2.add(new QryopIlTerm(tokenizeQuery("peas")[0]));
-    op1.add(op2);
-    printResults("#AND (aparagus broccoli cauliflower #SYN(peapods peas))", op1.evaluate(model));
+//    printResults("pea",
+//        (new QryopSlScore(new QryopIlTerm(tokenizeQuery("pea")[0]))).evaluate(model));
+//
+//    // A more complex query.
+//    printResults("#AND (asparagus broccoli cauliflower #SYN(peapods peas))", (new QryopSlAnd(
+//        new QryopIlTerm(tokenizeQuery("asparagus")[0]), new QryopIlTerm(
+//            tokenizeQuery("broccoli")[0]), new QryopIlTerm(tokenizeQuery("cauliflower")[0]),
+//        new QryopIlSyn(new QryopIlTerm(tokenizeQuery("peapods")[0]), new QryopIlTerm(
+//            tokenizeQuery("peas")[0])))).evaluate(model));
+//
+//    // A different way to create the previous query. This doesn't use
+//    // a stack, but it may make it easier to see how you would parse a
+//    // query with a stack-based architecture.
+//    Qryop op1 = new QryopSlAnd();
+//    op1.add(new QryopIlTerm(tokenizeQuery("asparagus")[0]));
+//    op1.add(new QryopIlTerm(tokenizeQuery("broccoli")[0]));
+//    op1.add(new QryopIlTerm(tokenizeQuery("cauliflower")[0]));
+//    Qryop op2 = new QryopIlSyn();
+//    op2.add(new QryopIlTerm(tokenizeQuery("peapods")[0]));
+//    op2.add(new QryopIlTerm(tokenizeQuery("peas")[0]));
+//    op1.add(op2);
+//    printResults("#AND (aparagus broccoli cauliflower #SYN(peapods peas))", op1.evaluate(model));
 
     // Using the example query parser. Notice that this does no
     // lexical processing of query terms. Add that to the query
