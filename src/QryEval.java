@@ -41,6 +41,8 @@ public class QryEval {
     analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
   }
 
+  static BufferedWriter writer;
+
   /**
    * @param args The only argument is the path to the parameter file.
    * @throws Exception
@@ -49,8 +51,7 @@ public class QryEval {
 
     // must supply parameter file
     if (args.length < 1) {
-      System.err.println(usage);
-      System.exit(1);
+      fatalError(usage);
     }
 
     // read in the parameter file; one parameter per line in format of key=value
@@ -65,110 +66,40 @@ public class QryEval {
     scan.close();
 
     // parameters required for this example to run
-    if (!params.containsKey("indexPath")) {
-      System.err.println("Error: Parameters were missing.");
-      System.exit(1);
+    if (!(params.containsKey("indexPath") && params.containsKey("queryFilePath")
+        && params.containsKey("trecEvalOutputPath") && params.containsKey("retrievalAlgorithm"))) {
+      fatalError("Error: Parameters were missing.");
     }
 
     // open the index
     READER = DirectoryReader.open(FSDirectory.open(new File(params.get("indexPath"))));
-
     if (READER == null) {
       fatalError(usage);
     }
 
-    DocLengthStore s = new DocLengthStore(READER);
-
     RetrievalModel model = new RetrievalModelUnrankedBoolean();
 
-    /*
-     * The code below is an unorganized set of examples that show you different ways of accessing
-     * the index. Some of these are only useful in HW2 or HW3.
-     */
-
-    // Lookup the document length of the body field of doc 0.
-    System.out.println(s.getDocLength("body", 0));
-
-    // How to use the term vector.
-    TermVector tv = new TermVector(1, "body");
-    System.out.println(tv.stemString(10)); // get the string for the 10th stem
-    System.out.println(tv.stemDf(10)); // get its df
-    System.out.println(tv.totalStemFreq(10)); // get its ctf
-
-    /**
-     * The index is open. Start evaluating queries. The examples below show query trees for two
-     * simple queries. These are meant to illustrate how query nodes are created and connected.
-     * However your software will not create queries like this. Your software will use a query
-     * parser. See parseQuery.
-     *
-     * The general pattern is to tokenize the query term (so that it gets converted to lower case,
-     * stopped, stemmed, etc), create a Term node to fetch the inverted list, create a Score node to
-     * convert an inverted list to a score list, evaluate the query, and print results.
-     * 
-     * Modify the software so that you read a query from a file, parse it, and form the query tree
-     * automatically.
-     */
-
-    // A one-word query.
-//    printResults("pea",
-//        (new QryopSlScore(new QryopIlTerm(tokenizeQuery("pea")[0]))).evaluate(model));
-//
-//    // A more complex query.
-//    printResults("#AND (asparagus broccoli cauliflower #SYN(peapods peas))", (new QryopSlAnd(
-//        new QryopIlTerm(tokenizeQuery("asparagus")[0]), new QryopIlTerm(
-//            tokenizeQuery("broccoli")[0]), new QryopIlTerm(tokenizeQuery("cauliflower")[0]),
-//        new QryopIlSyn(new QryopIlTerm(tokenizeQuery("peapods")[0]), new QryopIlTerm(
-//            tokenizeQuery("peas")[0])))).evaluate(model));
-//
-//    // A different way to create the previous query. This doesn't use
-//    // a stack, but it may make it easier to see how you would parse a
-//    // query with a stack-based architecture.
-//    Qryop op1 = new QryopSlAnd();
-//    op1.add(new QryopIlTerm(tokenizeQuery("asparagus")[0]));
-//    op1.add(new QryopIlTerm(tokenizeQuery("broccoli")[0]));
-//    op1.add(new QryopIlTerm(tokenizeQuery("cauliflower")[0]));
-//    Qryop op2 = new QryopIlSyn();
-//    op2.add(new QryopIlTerm(tokenizeQuery("peapods")[0]));
-//    op2.add(new QryopIlTerm(tokenizeQuery("peas")[0]));
-//    op1.add(op2);
-//    printResults("#AND (aparagus broccoli cauliflower #SYN(peapods peas))", op1.evaluate(model));
-
-    // Using the example query parser. Notice that this does no
-    // lexical processing of query terms. Add that to the query
-    // parser.
-    Qryop qTree;
-    String query = new String("#AND(apple pie)");
-    qTree = parseQuery(query);
-    printResults(query, qTree.evaluate(model));
-
-    /*
-     * Create the trec_eval output. Your code should write to the file specified in the parameter
-     * file, and it should write the results that you retrieved above. This code just allows the
-     * testing infrastructure to work on QryEval.
-     */
-    BufferedWriter writer = null;
-
-    try {
-      writer = new BufferedWriter(new FileWriter(new File("teval.in")));
-
-      writer.write("1 Q0 clueweb09-enwp01-75-20596 1 1.0 run-1");
-      writer.write("1 Q0 clueweb09-enwp01-58-04573 2 0.9 run-1");
-      writer.write("1 Q0 clueweb09-enwp01-24-11888 3 0.8 run-1");
-      writer.write("2 Q0 clueweb09-enwp00-70-20490 1 0.9 run-1");
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      try {
-        writer.close();
-      } catch (Exception e) {
-      }
+    // create the output file
+    File evalOut = new File(params.get("trecEvalOutputPath"));
+    if (!evalOut.exists()) {
+      evalOut.createNewFile();
     }
+    writer = new BufferedWriter(new FileWriter(evalOut.getAbsoluteFile()));
 
-    // Later HW assignments will use more RAM, so you want to be aware
-    // of how much memory your program uses.
-
+    // perform the queries
+    Scanner in = new Scanner(new BufferedReader(new FileReader(params.get("queryFilePath"))));
+    while (in.hasNextLine()) {
+      String qLine = in.nextLine();
+      String queryId = qLine.substring(0, qLine.indexOf(':'));
+      String query = qLine.substring(qLine.indexOf(':') + 1);
+      Qryop qTree = parseQuery(query);
+      QryResult result = qTree.evaluate(model);
+      result.docScores.sort();
+      writeResults(queryId, result);
+    }
+    in.close();
+    writer.close();
     printMemoryUsage(false);
-
   }
 
   /**
@@ -279,19 +210,20 @@ public class QryEval {
         currentOp.add(arg);
       } else {
 
-        // NOTE: You should do lexical processing of the token before
-        // creating the query term, and you should check to see whether
+        // Lexical processing of the token before creating the query term, and check to see whether
         // the token specifies a particular field (e.g., apple.title).
         if (!token.contains(".")) {
           token += ".body";
         }
         String[] tokenAndField = token.split("\\.");
         if (tokenAndField.length > 2) {
-          fatalError("Error: Invalid query term");
+          System.err.println("Error: Invalid query term.");
+          return null;
         }
         String[] processedToken = tokenizeQuery(tokenAndField[0]);
         if (processedToken.length > 1) {
-          fatalError("Error: Invalid query term");
+          System.err.println("Error: Invalid query term.");
+          return null;
         } else if (processedToken.length > 0) {
           currentOp.add(new QryopIlTerm(processedToken[0]));
         }
@@ -329,26 +261,23 @@ public class QryEval {
   }
 
   /**
-   * Print the query results.
+   * Write the query results into file.
    * 
-   * THIS IS NOT THE CORRECT OUTPUT FORMAT. YOU MUST CHANGE THIS METHOD SO THAT IT OUTPUTS IN THE
-   * FORMAT SPECIFIED IN THE HOMEWORK PAGE, WHICH IS:
-   * 
-   * QueryID Q0 DocID Rank Score RunID
-   * 
-   * @param queryName Original query.
-   * @param result Result object generated by {@link Qryop#evaluate()}.
+   * @param queryId ID of the query
+   * @param result Result of the query
    * @throws IOException
    */
-  static void printResults(String queryName, QryResult result) throws IOException {
+  static void writeResults(String queryId, QryResult result) throws IOException {
 
-    System.out.println(queryName + ":  ");
     if (result.docScores.scores.size() < 1) {
-      System.out.println("\tNo results.");
+      writer.write(queryId + " Q0 dummy 1 0 zexim\n");
     } else {
-      for (int i = 0; i < result.docScores.scores.size(); i++) {
-        System.out.println("\t" + i + ":  " + getExternalDocid(result.docScores.getDocid(i)) + ", "
-            + result.docScores.getDocidScore(i));
+      for (int i = 0; i < result.docScores.scores.size() && i < 100; i++) {
+        String line =
+            String.format("%s Q0 %s %d %f zexim\n", queryId,
+                getExternalDocid(result.docScores.getDocid(i)), i + 1, 1.0);
+        writer.write(line);
+        System.out.print(line);
       }
     }
   }
