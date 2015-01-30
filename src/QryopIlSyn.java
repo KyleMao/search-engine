@@ -124,7 +124,7 @@ public class QryopIlSyn extends QryopIl {
     for (int i=0; i<this.args.size(); i++) {
 
       if (! (this.args.get(i) instanceof QryopIl)) 
-	QryEval.fatalError ("Error:  Invalid argument in " +
+        QryEval.fatalError ("Error:  Invalid argument in " +
 			    this.toString());
       else
 	if ((i>0) &&

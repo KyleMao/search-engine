@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Carnegie Mellon University.  All Rights Reserved.
+ * Copyright (c) 2015, Carnegie Mellon University. All Rights Reserved.
  */
 
 import org.apache.lucene.index.FieldInvertState;
@@ -10,7 +10,7 @@ import org.apache.lucene.util.SmallFloat;
 
 
 public class DocLenStoreSimilarity extends SimilarityBase {
-   
+
   @Override
   protected float score(BasicStats stats, float freq, float docLen) {
     // TODO Auto-generated method stub
@@ -32,7 +32,7 @@ public class DocLenStoreSimilarity extends SimilarityBase {
       numTerms = state.getLength() - state.getNumOverlap();
     else
       numTerms = state.getLength();
-    return (long)numTerms;
+    return (long) numTerms;
   }
-  
+
 }

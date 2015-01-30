@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Carnegie Mellon University.  All Rights Reserved.
+ * Copyright (c) 2015, Carnegie Mellon University. All Rights Reserved.
  */
 
 import java.io.IOException;
@@ -13,10 +13,10 @@ import org.apache.lucene.index.MultiFields;
 /**
  * DocLengthStore is used to access the document lengths of indexed docs.
  */
-public class DocLengthStore  {
+public class DocLengthStore {
 
   private IndexReader reader;
-  private  Map<String, NumericDocValues> values = new HashMap<String, NumericDocValues>();
+  private Map<String, NumericDocValues> values = new HashMap<String, NumericDocValues>();
 
   /**
    * @param reader IndexReader object created in {@link QryEval}.
@@ -24,15 +24,14 @@ public class DocLengthStore  {
   public DocLengthStore(IndexReader reader) throws IOException {
     this.reader = reader;
     for (String field : MultiFields.getIndexedFields(reader)) {
-      this.values.put(field, MultiDocValues.getNormValues(reader, field));      
+      this.values.put(field, MultiDocValues.getNormValues(reader, field));
     }
   }
 
   /**
    * Returns the length of the specified field in the specified document.
    *
-   * @param fieldname Name of field to access lengths. "body" is the default
-   * field.
+   * @param fieldname Name of field to access lengths. "body" is the default field.
    * @param docid The internal docid in the lucene index.
    */
   public long getDocLength(String fieldname, int docid) throws IOException {

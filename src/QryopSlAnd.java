@@ -40,7 +40,7 @@ public class QryopSlAnd extends QryopSl {
    */
   public QryResult evaluate(RetrievalModel r) throws IOException {
 
-    if (r instanceof RetrievalModelUnrankedBoolean)
+    if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean)
       return (evaluateBoolean(r));
 
     return null;
@@ -89,7 +89,12 @@ public class QryopSlAnd extends QryopSl {
     EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.scoreList.scores.size(); ptr0.nextDoc++) {
 
       int ptr0Docid = ptr0.scoreList.getDocid(ptr0.nextDoc);
-      double docScore = 1.0;
+      double docScore;
+      if (r instanceof RetrievalModelUnrankedBoolean) {
+        docScore = 1.0;
+      } else {
+        docScore = ptr0.scoreList.getDocidScore(ptr0.nextDoc);
+      }
 
       // Do the other query arguments have the ptr0Docid?
 
@@ -104,13 +109,17 @@ public class QryopSlAnd extends QryopSl {
             continue EVALUATEDOCUMENTS; // The ptr0docid can't match.
           else if (ptrj.scoreList.getDocid(ptrj.nextDoc) < ptr0Docid)
             ptrj.nextDoc++; // Not yet at the right doc.
-          else
-            break; // ptrj matches ptr0Docid
+          else { // ptrj matches ptr0Docid
+            if (r instanceof RetrievalModelRankedBoolean
+                && ptrj.scoreList.getDocidScore(ptrj.nextDoc) < docScore) {
+              docScore = ptrj.scoreList.getDocidScore(ptrj.nextDoc);
+            }
+            break;
+          }
         }
       }
 
       // The ptr0Docid matched all query arguments, so save it.
-
       result.docScores.add(ptr0Docid, docScore);
     }
 

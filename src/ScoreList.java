@@ -65,7 +65,7 @@ public class ScoreList {
       @Override
       public int compare(ScoreListEntry s1, ScoreListEntry s2) {
         // Sort based on score first
-        int scoreCmp = ((Double) s1.score).compareTo((Double) s2.score);
+        int scoreCmp = ((Double) s2.score).compareTo((Double) s1.score);
         if (scoreCmp != 0) {
           return scoreCmp;
         }

@@ -21,7 +21,8 @@ import org.apache.lucene.util.Version;
 
 public class QryEval {
 
-  static String usage = "Usage:  java " + System.getProperty("sun.java.command") + " paramFile\n\n";
+  private static String usage = "Usage:  java " + System.getProperty("sun.java.command")
+      + " paramFile\n\n";
 
   // The index file reader is accessible via a global variable. This
   // isn't great programming style, but the alternative is for every
@@ -41,7 +42,7 @@ public class QryEval {
     analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
   }
 
-  static BufferedWriter writer;
+  private static BufferedWriter writer;
 
   /**
    * @param args The only argument is the path to the parameter file.
@@ -54,22 +55,7 @@ public class QryEval {
       fatalError(usage);
     }
 
-    // read in the parameter file; one parameter per line in format of key=value
-    Map<String, String> params = new HashMap<String, String>();
-    Scanner scan = new Scanner(new File(args[0]));
-    String line = null;
-    do {
-      line = scan.nextLine();
-      String[] pair = line.split("=");
-      params.put(pair[0].trim(), pair[1].trim());
-    } while (scan.hasNext());
-    scan.close();
-
-    // parameters required for this example to run
-    if (!(params.containsKey("indexPath") && params.containsKey("queryFilePath")
-        && params.containsKey("trecEvalOutputPath") && params.containsKey("retrievalAlgorithm"))) {
-      fatalError("Error: Parameters were missing.");
-    }
+    Map<String, String> params = readParam(args[0]);
 
     // open the index
     READER = DirectoryReader.open(FSDirectory.open(new File(params.get("indexPath"))));
@@ -77,7 +63,16 @@ public class QryEval {
       fatalError(usage);
     }
 
-    RetrievalModel model = new RetrievalModelUnrankedBoolean();
+    // read the retrieval algorithm
+    String modelName = params.get("retrievalAlgorithm");
+    RetrievalModel model = null;
+    if (modelName.equals("UnrankedBoolean")) {
+      model = new RetrievalModelUnrankedBoolean();
+    } else if (modelName.equals("RankedBoolean")) {
+      model = new RetrievalModelRankedBoolean();
+    } else {
+      fatalError("Unidentified retrieval algorithm!");
+    }
 
     // create the output file
     File evalOut = new File(params.get("trecEvalOutputPath"));
@@ -157,7 +152,7 @@ public class QryEval {
    * @param qTree A query tree
    * @throws IOException
    */
-  static Qryop parseQuery(String qString) throws IOException {
+  private static Qryop parseQuery(String qString) throws IOException {
 
     Qryop currentOp = null;
     Stack<Qryop> stack = new Stack<Qryop>();
@@ -225,7 +220,7 @@ public class QryEval {
           System.err.println("Error: Invalid query term.");
           return null;
         } else if (processedToken.length > 0) {
-          currentOp.add(new QryopIlTerm(processedToken[0]));
+          currentOp.add(new QryopIlTerm(processedToken[0], tokenAndField[1]));
         }
       }
     }
@@ -267,7 +262,7 @@ public class QryEval {
    * @param result Result of the query
    * @throws IOException
    */
-  static void writeResults(String queryId, QryResult result) throws IOException {
+  private static void writeResults(String queryId, QryResult result) throws IOException {
 
     if (result.docScores.scores.size() < 1) {
       writer.write(queryId + " Q0 dummy 1 0 zexim\n");
@@ -275,9 +270,9 @@ public class QryEval {
       for (int i = 0; i < result.docScores.scores.size() && i < 100; i++) {
         String line =
             String.format("%s Q0 %s %d %f zexim\n", queryId,
-                getExternalDocid(result.docScores.getDocid(i)), i + 1, 1.0);
+                getExternalDocid(result.docScores.getDocid(i)), i + 1,
+                result.docScores.getDocidScore(i));
         writer.write(line);
-        System.out.print(line);
       }
     }
   }
@@ -292,7 +287,7 @@ public class QryEval {
    * @return Array of query tokens
    * @throws IOException
    */
-  static String[] tokenizeQuery(String query) throws IOException {
+  private static String[] tokenizeQuery(String query) throws IOException {
 
     TokenStreamComponents comp = analyzer.createComponents("dummy", new StringReader(query));
     TokenStream tokenStream = comp.getTokenStream();
@@ -306,5 +301,33 @@ public class QryEval {
       tokens.add(term);
     }
     return tokens.toArray(new String[tokens.size()]);
+  }
+
+  /**
+   * Read in the parameter file. One parameter per line in format of key=value.
+   * 
+   * @param paramPath
+   * @return A map of parameters for the search engine
+   * @throws IOException
+   */
+  private static Map<String, String> readParam(String paramPath) throws IOException {
+
+    Map<String, String> params = new HashMap<String, String>();
+    Scanner scan = new Scanner(new File(paramPath));
+    String line = null;
+    do {
+      line = scan.nextLine();
+      String[] pair = line.split("=");
+      params.put(pair[0].trim(), pair[1].trim());
+    } while (scan.hasNext());
+    scan.close();
+
+    // parameters required for this example to run
+    if (!(params.containsKey("indexPath") && params.containsKey("queryFilePath")
+        && params.containsKey("trecEvalOutputPath") && params.containsKey("retrievalAlgorithm"))) {
+      fatalError("Error: Parameters were missing.");
+    }
+
+    return params;
   }
 }
