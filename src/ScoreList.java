@@ -5,7 +5,6 @@
  * Copyright (c) 2015, Carnegie Mellon University. All Rights Reserved.
  */
 
-import java.io.IOException;
 import java.util.*;
 
 public class ScoreList {
@@ -61,24 +60,18 @@ public class ScoreList {
    */
   public void sort() {
 
+    System.out.println("sorting...");
     Collections.sort(scores, new Comparator<ScoreListEntry>() {
       @Override
       public int compare(ScoreListEntry s1, ScoreListEntry s2) {
         // Sort based on score first
-        int scoreCmp = ((Double) s2.score).compareTo((Double) s1.score);
-        if (scoreCmp != 0) {
-          return scoreCmp;
+        if (s1.score < s2.score) {
+          return 1;
+        } else if (s1.score > s2.score){
+          return -1;
+        } else {
+          return 0;
         }
-
-        // Sort based on external document id
-        int externalIdCmp = 1;
-        try {
-          externalIdCmp =
-              QryEval.getExternalDocid(s1.docid).compareTo(QryEval.getExternalDocid(s2.docid));
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-        return externalIdCmp;
       }
     });
   }

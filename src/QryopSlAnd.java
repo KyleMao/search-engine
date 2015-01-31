@@ -23,7 +23,7 @@ public class QryopSlAnd extends QryopSl {
    * Appends an argument to the list of query operator arguments. This simplifies the design of some
    * query parsing architectures.
    * 
-   * @param {q} q The query argument (query operator) to append.
+   * @param {q} q The query argument (query operator) to append
    * @return void
    * @throws IOException
    */
@@ -34,8 +34,8 @@ public class QryopSlAnd extends QryopSl {
   /**
    * Evaluates the query operator, including any child operators and returns the result.
    * 
-   * @param r A retrieval model that controls how the operator behaves.
-   * @return The result of evaluating the query.
+   * @param r A retrieval model that controls how the operator behaves
+   * @return The result of evaluating the query
    * @throws IOException
    */
   public QryResult evaluate(RetrievalModel r) throws IOException {
@@ -138,7 +138,7 @@ public class QryopSlAnd extends QryopSl {
    */
   public double getDefaultScore(RetrievalModel r, long docid) throws IOException {
 
-    if (r instanceof RetrievalModelUnrankedBoolean)
+    if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean)
       return (0.0);
 
     return 0.0;

@@ -23,6 +23,7 @@ public class QryEval {
 
   private static String usage = "Usage:  java " + System.getProperty("sun.java.command")
       + " paramFile\n\n";
+  private static int MAX_RESULT = 100;
 
   // The index file reader is accessible via a global variable. This
   // isn't great programming style, but the alternative is for every
@@ -184,6 +185,9 @@ public class QryEval {
       } else if (token.equalsIgnoreCase("#and")) {
         currentOp = new QryopSlAnd();
         stack.push(currentOp);
+      } else if (token.equalsIgnoreCase("#or")) {
+        currentOp = new QryopSlOr();
+        stack.push(currentOp);
       } else if (token.equalsIgnoreCase("#syn")) {
         currentOp = new QryopIlSyn();
         stack.push(currentOp);
@@ -267,7 +271,7 @@ public class QryEval {
     if (result.docScores.scores.size() < 1) {
       writer.write(queryId + " Q0 dummy 1 0 zexim\n");
     } else {
-      for (int i = 0; i < result.docScores.scores.size() && i < 100; i++) {
+      for (int i = 0; i < result.docScores.scores.size() && i < MAX_RESULT; i++) {
         String line =
             String.format("%s Q0 %s %d %f zexim\n", queryId,
                 getExternalDocid(result.docScores.getDocid(i)), i + 1,
@@ -330,4 +334,5 @@ public class QryEval {
 
     return params;
   }
+
 }
