@@ -54,26 +54,4 @@ public class ScoreList {
     return this.scores.get(n).score;
   }
 
-  /**
-   * Sort the matching documents by their scores, in descending order. The external document id is a
-   * secondary sort key.
-   */
-  public void sort() {
-
-    System.out.println("sorting...");
-    Collections.sort(scores, new Comparator<ScoreListEntry>() {
-      @Override
-      public int compare(ScoreListEntry s1, ScoreListEntry s2) {
-        // Sort based on score first
-        if (s1.score < s2.score) {
-          return 1;
-        } else if (s1.score > s2.score){
-          return -1;
-        } else {
-          return 0;
-        }
-      }
-    });
-  }
-
 }

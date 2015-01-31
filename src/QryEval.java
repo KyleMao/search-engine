@@ -43,8 +43,6 @@ public class QryEval {
     analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
   }
 
-  private static BufferedWriter writer;
-
   /**
    * @param args The only argument is the path to the parameter file.
    * @throws Exception
@@ -80,7 +78,7 @@ public class QryEval {
     if (!evalOut.exists()) {
       evalOut.createNewFile();
     }
-    writer = new BufferedWriter(new FileWriter(evalOut.getAbsoluteFile()));
+    BufferedWriter writer = new BufferedWriter(new FileWriter(evalOut.getAbsoluteFile()));
 
     // perform the queries
     Scanner in = new Scanner(new BufferedReader(new FileReader(params.get("queryFilePath"))));
@@ -90,8 +88,8 @@ public class QryEval {
       String query = qLine.substring(qLine.indexOf(':') + 1);
       Qryop qTree = parseQuery(query);
       QryResult result = qTree.evaluate(model);
-      result.docScores.sort();
-      writeResults(queryId, result);
+      //result.docScores.sort();
+      writeResults(writer, queryId, result);
     }
     in.close();
     writer.close();
@@ -266,16 +264,17 @@ public class QryEval {
    * @param result Result of the query
    * @throws IOException
    */
-  private static void writeResults(String queryId, QryResult result) throws IOException {
+  private static void writeResults(BufferedWriter writer, String queryId, QryResult result)
+      throws IOException {
 
     if (result.docScores.scores.size() < 1) {
       writer.write(queryId + " Q0 dummy 1 0 zexim\n");
     } else {
-      for (int i = 0; i < result.docScores.scores.size() && i < MAX_RESULT; i++) {
+      DocScore docScore = new DocScore(result);
+      for (int i = 0; i < docScore.scores.size() && i < MAX_RESULT; i++) {
         String line =
-            String.format("%s Q0 %s %d %f zexim\n", queryId,
-                getExternalDocid(result.docScores.getDocid(i)), i + 1,
-                result.docScores.getDocidScore(i));
+            String.format("%s Q0 %s %d %f zexim\n", queryId, docScore.getExternalDocid(i), i + 1,
+                docScore.getDocidScore(i));
         writer.write(line);
       }
     }
