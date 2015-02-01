@@ -19,7 +19,7 @@ public class QryopIlNear extends QryopIl {
   public QryopIlNear(int distance) {
     this.distance = distance;
   }
-  
+
   /**
    * It is convenient for the constructor to accept a variable number of arguments. Thus new
    * qryopNear (distance, arg1, arg2, arg3, ...).
@@ -60,7 +60,7 @@ public class QryopIlNear extends QryopIl {
 
     return null;
   }
-  
+
   /**
    * Evaluates the query operator for boolean retrieval models, including any child operators and
    * returns the result.
@@ -70,7 +70,45 @@ public class QryopIlNear extends QryopIl {
    * @throws IOException
    */
   public QryResult evaluateBoolean(RetrievalModel r) throws IOException {
-    return null;
+
+    // Initialization
+    allocArgPtrs(r);
+    QryResult result = new QryResult();
+
+    // NEAR is should be based on AND. Exact-match AND requires that ALL scoreLists contain a
+    // document id. Use the first list to control the search for matches.
+    ArgPtr ptr0 = this.argPtrs.get(0);
+
+    EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.scoreList.scores.size(); ptr0.nextDoc++) {
+
+      int ptr0Docid = ptr0.scoreList.getDocid(ptr0.nextDoc);
+      double docScore = 0.0;
+
+      // Do the other query arguments have the ptr0Docid?
+      for (int j = 1; j < this.argPtrs.size(); j++) {
+
+        ArgPtr ptrj = this.argPtrs.get(j);
+
+        while (true) {
+          if (ptrj.nextDoc >= ptrj.scoreList.scores.size())
+            break EVALUATEDOCUMENTS; // No more docs can match
+          else if (ptrj.scoreList.getDocid(ptrj.nextDoc) > ptr0Docid)
+            continue EVALUATEDOCUMENTS; // The ptr0docid can't match.
+          else if (ptrj.scoreList.getDocid(ptrj.nextDoc) < ptr0Docid)
+            ptrj.nextDoc++; // Not yet at the right doc.
+          else {
+            // ptrj matches ptr0Docid, use the term vector of ptr0Docid to test for NEAR conditions
+            //TermVector tv = new TermVector(ptr0Docid, ptr0.scoreList.scores.get(ptr0.nextDoc).)
+            break;
+          }
+        }
+      }
+
+      // The ptr0Docid matched all query arguments, so save it.
+      result.docScores.add(ptr0Docid, docScore);
+    }
+
+    return result;
   }
 
   /*
@@ -86,7 +124,7 @@ public class QryopIlNear extends QryopIl {
     for (int i = 0; i < this.args.size(); i++)
       result += this.args.get(i).toString() + " ";
 
-    return ("#NEAR/" + distance +"( " + result + ")");
+    return ("#NEAR/" + distance + "( " + result + ")");
   }
 
 }
