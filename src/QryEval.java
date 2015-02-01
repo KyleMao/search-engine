@@ -187,6 +187,9 @@ public class QryEval {
       } else if (token.equalsIgnoreCase("#syn")) {
         currentOp = new QryopIlSyn();
         stack.push(currentOp);
+      } else if (token.toLowerCase().startsWith("#near")) {
+        currentOp = new QryopIlNear(Integer.parseInt(token.substring(token.indexOf('/')+1)));
+        stack.push(currentOp);
       } else if (token.startsWith(")")) { // Finish current query operator.
         // If the current query operator is not an argument to
         // another query operator (i.e., the stack is empty when it
