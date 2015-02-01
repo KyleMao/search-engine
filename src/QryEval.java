@@ -160,10 +160,8 @@ public class QryEval {
     // is a tiny bit easier if unnecessary whitespace is removed.
 
     qString = qString.trim();
-
-    if (qString.charAt(0) != '#') {
-      qString = "#or(" + qString + ")";
-    }
+    // Add default operator
+    qString = "#or(" + qString + ")";
 
     // Tokenize the query.
 

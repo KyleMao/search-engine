@@ -42,6 +42,7 @@ public class QryopIlTerm extends QryopIl {
    * make sense for the Term query operator. So, it's here, but it does nothing. Ugly.
    * 
    * @param {q} q The query argument (query operator) to append.
+   * 
    * @return void
    */
   public void add(Qryop q) {}
