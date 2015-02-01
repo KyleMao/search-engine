@@ -77,7 +77,7 @@ public class QryopSlOr extends QryopSl {
    * @throws IOException
    */
   public QryResult evaluateBoolean(RetrievalModel r) throws IOException {
-    
+
     // Initialization
     allocArgPtrs(r);
     QryResult result = new QryResult();
@@ -87,20 +87,31 @@ public class QryopSlOr extends QryopSl {
     for (ArgPtr argPtr : argPtrs) {
       for (; argPtr.nextDoc < argPtr.scoreList.scores.size(); argPtr.nextDoc++) {
         if (r instanceof RetrievalModelUnrankedBoolean) {
+          // For unranked retrieval model, add a score only if it has not appeared yet.
           if (!docScores.containsKey(argPtr.scoreList.getDocid(argPtr.nextDoc))) {
             docScores.put(argPtr.scoreList.getDocid(argPtr.nextDoc), 1.0);
           }
         } else {
-          // TODO: RankedBoolean model
+          // For ranked retrieval model, add a score if it has not appeared, or update a score if
+          // got a higher one.
+          if (!docScores.containsKey(argPtr.scoreList.getDocid(argPtr.nextDoc))) {
+            docScores.put(argPtr.scoreList.getDocid(argPtr.nextDoc),
+                argPtr.scoreList.getDocidScore(argPtr.nextDoc));
+          } else {
+            double newScore = argPtr.scoreList.getDocidScore(argPtr.nextDoc);
+            if (newScore > docScores.get(argPtr.scoreList.getDocid(argPtr.nextDoc))) {
+              docScores.put(argPtr.scoreList.getDocid(argPtr.nextDoc), newScore);
+            }
+          }
         }
       }
     }
-    
+
     // Add scores to result
     for (Map.Entry<Integer, Double> entry : docScores.entrySet()) {
       result.docScores.add(entry.getKey(), entry.getValue());
     }
-    
+
     freeArgPtrs();
 
     return result;
