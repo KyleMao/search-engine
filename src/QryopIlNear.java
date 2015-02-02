@@ -6,9 +6,14 @@
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Vector;
 
 public class QryopIlNear extends QryopIl {
 
+  // Max term distance of two candidate terms
   private int distance;
 
   /**
@@ -79,10 +84,8 @@ public class QryopIlNear extends QryopIl {
     // document id. Use the first list to control the search for matches.
     ArgPtr ptr0 = this.argPtrs.get(0);
 
-    EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.scoreList.scores.size(); ptr0.nextDoc++) {
-
-      int ptr0Docid = ptr0.scoreList.getDocid(ptr0.nextDoc);
-      double docScore = 0.0;
+    EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.invList.postings.size(); ptr0.nextDoc++) {
+      int ptr0Docid = ptr0.invList.getDocid(ptr0.nextDoc);
 
       // Do the other query arguments have the ptr0Docid?
       for (int j = 1; j < this.argPtrs.size(); j++) {
@@ -90,22 +93,68 @@ public class QryopIlNear extends QryopIl {
         ArgPtr ptrj = this.argPtrs.get(j);
 
         while (true) {
-          if (ptrj.nextDoc >= ptrj.scoreList.scores.size())
-            break EVALUATEDOCUMENTS; // No more docs can match
-          else if (ptrj.scoreList.getDocid(ptrj.nextDoc) > ptr0Docid)
+          if (ptrj.nextDoc >= ptr0.invList.postings.size())
+            break EVALUATEDOCUMENTS; // No more docs can match.
+          else if (ptrj.invList.getDocid(ptrj.nextDoc) > ptr0Docid)
             continue EVALUATEDOCUMENTS; // The ptr0docid can't match.
-          else if (ptrj.scoreList.getDocid(ptrj.nextDoc) < ptr0Docid)
+          else if (ptrj.invList.getDocid(ptrj.nextDoc) < ptr0Docid)
             ptrj.nextDoc++; // Not yet at the right doc.
-          else {
-            // ptrj matches ptr0Docid, use the term vector of ptr0Docid to test for NEAR conditions
-            //TermVector tv = new TermVector(ptr0Docid, ptr0.scoreList.scores.get(ptr0.nextDoc).)
-            break;
-          }
+          else
+            break; // Same document found.
         }
       }
 
-      // The ptr0Docid matched all query arguments, so save it.
-      result.docScores.add(ptr0Docid, docScore);
+      // Already satisfies AND condition, check for NEAR condition
+      List<Integer> locations = new ArrayList<Integer>();
+      List<Integer> allPos = new ArrayList<Integer>(Collections.nCopies(this.args.size(), 0));
+      EVALUATELOCATIONS: while (true) {
+
+        // Check whether any of the position lists is exhausted
+        for (int j = 0; j < allPos.size(); j++) {
+          ArgPtr ptrj = this.argPtrs.get(j);
+          if (allPos.get(j) >= getPositions(ptrj).size()) {
+            break EVALUATELOCATIONS;
+          }
+        }
+
+        for (int j = 1; j < allPos.size(); j++) {
+
+          // Get the positions under evaluation in the i'th and j'th query term
+          ArgPtr ptri = this.argPtrs.get(j - 1);
+          ArgPtr ptrj = this.argPtrs.get(j);
+          int iPos = getPositions(ptri).get(allPos.get(j - 1));
+          int jPos = getPositions(ptrj).get(allPos.get(j));
+
+          if (jPos - iPos <= 0) { // Not yet the right position.
+            incListElem(allPos, j);
+            if (allPos.get(j) >= getPositions(ptrj).size()) {
+              break EVALUATELOCATIONS;
+            }
+            j--; // Backtrack
+          } else if (jPos - iPos <= distance) { // Got one.
+            continue;
+          } else { // Other conditions.
+            incListElem(allPos, j-1);
+            if (allPos.get(j - 1) >= getPositions(ptri).size()) {
+              break EVALUATELOCATIONS;
+            }
+            j -= 2; // Backtrack two levels
+            if (j < 0) {
+              continue EVALUATELOCATIONS;
+            }
+          }
+        }
+
+        ArgPtr ptr = this.argPtrs.get(allPos.size() - 1);
+        locations.add(getPositions(ptr).get(allPos.get(allPos.size() - 1)));
+        for (int i = 0; i < allPos.size(); i++) {
+          incListElem(allPos, i);
+        }
+      }
+
+      if (!locations.isEmpty()) {
+        result.invertedList.appendPosting(ptr0Docid, locations);
+      }
     }
 
     return result;
@@ -125,6 +174,29 @@ public class QryopIlNear extends QryopIl {
       result += this.args.get(i).toString() + " ";
 
     return ("#NEAR/" + distance + "( " + result + ")");
+  }
+
+  /*
+   * Increment an element in a list of integers by one.
+   * 
+   * @param list The list to be dealt with
+   * 
+   * @param idx The index of the integer to be incremented
+   */
+  private void incListElem(List<Integer> list, int idx) {
+    int tmp = list.get(idx);
+    list.set(idx, tmp + 1);
+  }
+
+  /*
+   * Get the positions in the document currently under evaluation in the ArgPtr.
+   * 
+   * @param argPtr
+   * 
+   * @return The positions in the document currently under evaluation
+   */
+  private Vector<Integer> getPositions(ArgPtr argPtr) {
+    return argPtr.invList.postings.get(argPtr.nextDoc).positions;
   }
 
 }
