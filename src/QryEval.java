@@ -53,7 +53,7 @@ public class QryEval {
     if (args.length < 1) {
       fatalError(usage);
     }
-    
+
     long startTime = System.currentTimeMillis();
 
     Map<String, String> params = readParam(args[0]);
@@ -90,11 +90,12 @@ public class QryEval {
       String query = qLine.substring(qLine.indexOf(':') + 1);
       Qryop qTree = parseQuery(query);
       QryResult result = qTree.evaluate(model);
-      // result.docScores.sort();
       writeResults(writer, queryId, result);
     }
     in.close();
     writer.close();
+
+    // print running time and memory usage
     long endTime = System.currentTimeMillis();
     System.out.println("Running Time: " + (endTime - startTime) + " ms");
     printMemoryUsage(false);
