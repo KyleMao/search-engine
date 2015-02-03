@@ -111,6 +111,7 @@ public class QryopIlNear extends QryopIl {
 
         // Check whether any of the position lists is exhausted
         for (int j = 0; j < allPos.size(); j++) {
+          
           ArgPtr ptrj = this.argPtrs.get(j);
           if (allPos.get(j) >= getPositions(ptrj).size()) {
             break EVALUATELOCATIONS;
@@ -133,20 +134,21 @@ public class QryopIlNear extends QryopIl {
             j--; // Backtrack
           } else if (jPos - iPos <= distance) { // Got one.
             continue;
-          } else { // Other conditions.
+          } else { // Cannot match.
             incListElem(allPos, j - 1);
             if (allPos.get(j - 1) >= getPositions(ptri).size()) {
               break EVALUATELOCATIONS;
             }
-            j -= 2; // Backtrack two levels
-            if (j < 0) {
-              continue EVALUATELOCATIONS;
+            if (j >= 2) {
+              j -= 2; // Backtrack two levels.
+            } else {
+              continue EVALUATELOCATIONS; // Restart from the second term.
             }
           }
         }
 
-        ArgPtr ptr = this.argPtrs.get(allPos.size() - 1);
-        locations.add(getPositions(ptr).get(allPos.get(allPos.size() - 1)));
+        // Add the location of the first term to locations
+        locations.add(getPositions(ptr0).get(allPos.get(0)));
         for (int i = 0; i < allPos.size(); i++) {
           incListElem(allPos, i);
         }

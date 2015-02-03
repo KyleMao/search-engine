@@ -53,6 +53,8 @@ public class QryEval {
     if (args.length < 1) {
       fatalError(usage);
     }
+    
+    long startTime = System.currentTimeMillis();
 
     Map<String, String> params = readParam(args[0]);
 
@@ -88,11 +90,13 @@ public class QryEval {
       String query = qLine.substring(qLine.indexOf(':') + 1);
       Qryop qTree = parseQuery(query);
       QryResult result = qTree.evaluate(model);
-      //result.docScores.sort();
+      // result.docScores.sort();
       writeResults(writer, queryId, result);
     }
     in.close();
     writer.close();
+    long endTime = System.currentTimeMillis();
+    System.out.println("Running Time: " + (endTime - startTime) + " ms");
     printMemoryUsage(false);
   }
 
@@ -188,7 +192,7 @@ public class QryEval {
         currentOp = new QryopIlSyn();
         stack.push(currentOp);
       } else if (token.toLowerCase().startsWith("#near")) {
-        currentOp = new QryopIlNear(Integer.parseInt(token.substring(token.indexOf('/')+1)));
+        currentOp = new QryopIlNear(Integer.parseInt(token.substring(token.indexOf('/') + 1)));
         stack.push(currentOp);
       } else if (token.startsWith(")")) { // Finish current query operator.
         // If the current query operator is not an argument to
