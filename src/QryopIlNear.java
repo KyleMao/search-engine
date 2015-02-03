@@ -134,7 +134,7 @@ public class QryopIlNear extends QryopIl {
           } else if (jPos - iPos <= distance) { // Got one.
             continue;
           } else { // Other conditions.
-            incListElem(allPos, j-1);
+            incListElem(allPos, j - 1);
             if (allPos.get(j - 1) >= getPositions(ptri).size()) {
               break EVALUATELOCATIONS;
             }
