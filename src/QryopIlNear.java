@@ -80,11 +80,11 @@ public class QryopIlNear extends QryopIl {
     allocArgPtrs(r);
     QryResult result = new QryResult();
 
-    // NEAR is should be based on AND. Exact-match AND requires that ALL scoreLists contain a
+    // NEAR is should be based on AND. Exact-match AND requires that ALL invLists contain a
     // document id. Use the first list to control the search for matches.
     ArgPtr ptr0 = this.argPtrs.get(0);
 
-    EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.invList.postings.size(); ptr0.nextDoc++) {
+    EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.invList.df; ptr0.nextDoc++) {
       int ptr0Docid = ptr0.invList.getDocid(ptr0.nextDoc);
 
       // Do the other query arguments have the ptr0Docid?
@@ -93,7 +93,7 @@ public class QryopIlNear extends QryopIl {
         ArgPtr ptrj = this.argPtrs.get(j);
 
         while (true) {
-          if (ptrj.nextDoc >= ptr0.invList.postings.size())
+          if (ptrj.nextDoc >= ptrj.invList.df)
             break EVALUATEDOCUMENTS; // No more docs can match.
           else if (ptrj.invList.getDocid(ptrj.nextDoc) > ptr0Docid)
             continue EVALUATEDOCUMENTS; // The ptr0docid can't match.
