@@ -10,7 +10,7 @@ public class RetrievalModelUnrankedBoolean extends RetrievalModel {
    * Set a retrieval model parameter.
    * 
    * @param parameterName
-   * @param parametervalue
+   * @param value
    * @return Always false because this retrieval model has no parameters.
    */
   public boolean setParameter(String parameterName, double value) {
@@ -23,7 +23,7 @@ public class RetrievalModelUnrankedBoolean extends RetrievalModel {
    * Set a retrieval model parameter.
    * 
    * @param parameterName
-   * @param parametervalue
+   * @param value
    * @return Always false because this retrieval model has no parameters.
    */
   public boolean setParameter(String parameterName, String value) {

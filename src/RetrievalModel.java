@@ -13,7 +13,7 @@ public abstract class RetrievalModel {
   /**
    *  Set a retrieval model parameter.
    *  @param parameterName The name of the parameter to set.
-   *  @param parametervalue The parameter's value.
+   *  @param value The parameter's value.
    *  @return true if the parameter is set successfully, false otherwise.
    */
   public abstract boolean setParameter (String parameterName, double value);
@@ -21,7 +21,7 @@ public abstract class RetrievalModel {
   /**
    *  Set a retrieval model parameter.
    *  @param parameterName The name of the parameter to set.
-   *  @param parametervalue The parameter's value.
+   *  @param value The parameter's value.
    *  @return true if the parameter is set successfully, false otherwise.
    */
   public abstract boolean setParameter (String parameterName, String value);

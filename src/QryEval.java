@@ -65,17 +65,8 @@ public class QryEval {
     }
 
     // read the retrieval algorithm
-    String modelName = params.get("retrievalAlgorithm");
-    RetrievalModel model = null;
-    if (modelName.equals("UnrankedBoolean")) {
-      model = new RetrievalModelUnrankedBoolean();
-    } else if (modelName.equals("RankedBoolean")) {
-      model = new RetrievalModelRankedBoolean();
-    } else if (modelName.equals("Indri")) {
-      model = new RetrievalModelIndri();
-      model.setParameter("mu", Double.parseDouble(params.get("Indri:mu")));
-      model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
-    } else {
+    RetrievalModel model = getModel(params);
+    if (model == null) {
       fatalError("Unidentified retrieval algorithm!");
     }
 
@@ -344,6 +335,12 @@ public class QryEval {
     return params;
   }
   
+  /**
+   * Get the retrieval model with parameters.
+   * 
+   * @param params A map of parameters for the search engine
+   * @return A retrieval model, or null if no model matched
+   */
   private static RetrievalModel getModel(Map<String, String> params) {
     String modelName = params.get("retrievalAlgorithm");
     RetrievalModel model = null;
@@ -353,11 +350,10 @@ public class QryEval {
       model = new RetrievalModelRankedBoolean();
     } else if (modelName.equals("Indri")) {
       model = new RetrievalModelIndri();
-      model.setParameter("mu", Double.parseDouble(params.get("Indri:mu")));
+      model.setParameter("mu", Integer.parseInt(params.get("Indri:mu")));
       model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
-    } else {
-      fatalError("Unidentified retrieval algorithm!");
     }
+    
     return model;
   }
 

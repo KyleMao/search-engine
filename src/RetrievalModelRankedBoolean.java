@@ -10,7 +10,7 @@ public class RetrievalModelRankedBoolean extends RetrievalModel {
    * Set a retrieval model parameter.
    * 
    * @param parameterName
-   * @param parametervalue
+   * @param value
    * @return Always false because this retrieval model has no parameters.
    */
   @Override
@@ -24,7 +24,7 @@ public class RetrievalModelRankedBoolean extends RetrievalModel {
    * Set a retrieval model parameter.
    * 
    * @param parameterName
-   * @param parametervalue
+   * @param value
    * @return Always false because this retrieval model has no parameters.
    */
   @Override
