@@ -83,7 +83,7 @@ public class QryEval {
       String qLine = in.nextLine();
       String queryId = qLine.substring(0, qLine.indexOf(':'));
       String query = qLine.substring(qLine.indexOf(':') + 1);
-      Qryop qTree = parseQuery(query);
+      Qryop qTree = parseQuery(query, model);
       QryResult result = qTree.evaluate(model);
       writeResults(writer, queryId, result);
     }
@@ -97,85 +97,39 @@ public class QryEval {
   }
 
   /**
-   * Write an error message and exit. This can be done in other ways, but I wanted something that
-   * takes just one statement so that it is easy to insert checks without cluttering the code.
-   * 
-   * @param message The error message to write before exiting.
-   * @return void
-   */
-  static void fatalError(String message) {
-    System.err.println(message);
-    System.exit(1);
-  }
-
-  /**
-   * Get the external document id for a document specified by an internal document id. If the
-   * internal id doesn't exists, returns null.
-   * 
-   * @param iid The internal document id of the document.
-   * @throws IOException
-   */
-  static String getExternalDocid(int iid) throws IOException {
-    Document d = QryEval.READER.document(iid);
-    String eid = d.get("externalId");
-    return eid;
-  }
-
-  /**
-   * Finds the internal document id for a document specified by its external id, e.g.
-   * clueweb09-enwp00-88-09710. If no such document exists, it throws an exception.
-   * 
-   * @param externalId The external document id of a document.s
-   * @return An internal doc id suitable for finding document vectors etc.
-   * @throws Exception
-   */
-  static int getInternalDocid(String externalId) throws Exception {
-    Query q = new TermQuery(new Term("externalId", externalId));
-
-    IndexSearcher searcher = new IndexSearcher(QryEval.READER);
-    TopScoreDocCollector collector = TopScoreDocCollector.create(1, false);
-    searcher.search(q, collector);
-    ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
-    if (hits.length < 1) {
-      throw new Exception("External id not found.");
-    } else {
-      return hits[0].doc;
-    }
-  }
-
-  /**
    * parseQuery converts a query string into a query tree.
    * 
    * @param qString A string containing a query
-   * @param qTree A query tree
+   * @param r The retrieval model for the query
+   * @return currentOp
    * @throws IOException
    */
-  private static Qryop parseQuery(String qString) throws IOException {
+  private static Qryop parseQuery(String qString, RetrievalModel r) throws IOException {
 
     Qryop currentOp = null;
     Stack<Qryop> stack = new Stack<Qryop>();
 
     // Add a default query operator to an unstructured query. This
     // is a tiny bit easier if unnecessary whitespace is removed.
-
     qString = qString.trim();
     // Add default operator
-    qString = "#or(" + qString + ")";
+    if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean) {
+      qString = "#or(" + qString + ")";
+    } else if (r instanceof RetrievalModelIndri) {
+      qString = "#and(" + qString + ")";
+    }
 
     // Tokenize the query.
-
     StringTokenizer tokens = new StringTokenizer(qString, "\t\n\r ,()", true);
     String token = null;
 
     // Each pass of the loop processes one token. To improve
     // efficiency and clarity, the query operator on the top of the
     // stack is also stored in currentOp.
-
     while (tokens.hasMoreTokens()) {
 
       token = tokens.nextToken();
-
+      
       if (token.matches("[ ,(\t\n\r]")) {
         // Ignore most delimiters.
       } else if (token.equalsIgnoreCase("#and")) {
@@ -197,17 +151,13 @@ public class QryEval {
         // below). Otherwise, add the current operator as an
         // argument to the higher-level operator, and shift
         // processing back to the higher-level operator.
-
         stack.pop();
-
         if (stack.empty())
           break;
-
         Qryop arg = currentOp;
         currentOp = stack.peek();
         currentOp.add(arg);
       } else {
-
         // Lexical processing of the token before creating the query term, and check to see whether
         // the token specifies a particular field (e.g., apple.title).
         if (!token.contains(".")) {
@@ -218,6 +168,7 @@ public class QryEval {
           System.err.println("Error: Invalid query term.");
           return null;
         }
+        
         String[] processedToken = tokenizeQuery(tokenAndField[0]);
         if (processedToken.length > 1) {
           System.err.println("Error: Invalid query term.");
@@ -230,7 +181,6 @@ public class QryEval {
 
     // A broken structured query can leave unprocessed tokens on the
     // stack, so check for that.
-
     if (tokens.hasMoreTokens()) {
       System.err.println("Error:  Query syntax is incorrect.  " + qString);
       return null;
@@ -239,47 +189,7 @@ public class QryEval {
     return currentOp;
   }
 
-  /**
-   * Print a message indicating the amount of memory used. The caller can indicate whether garbage
-   * collection should be performed, which slows the program but reduces memory usage.
-   * 
-   * @param gc If true, run the garbage collector before reporting.
-   * @return void
-   */
-  public static void printMemoryUsage(boolean gc) {
-
-    Runtime runtime = Runtime.getRuntime();
-
-    if (gc) {
-      runtime.gc();
-    }
-
-    System.out.println("Memory used:  "
-        + ((runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L)) + " MB");
-  }
-
-  /**
-   * Write the query results into file.
-   * 
-   * @param queryId ID of the query
-   * @param result Result of the query
-   * @throws IOException
-   */
-  private static void writeResults(BufferedWriter writer, String queryId, QryResult result)
-      throws IOException {
-
-    if (result.docScores.scores.size() < 1) {
-      writer.write(queryId + " Q0 dummy 1 0 zexim\n");
-    } else {
-      DocScore docScore = new DocScore(result);
-      for (int i = 0; i < docScore.scores.size() && i < MAX_RESULT; i++) {
-        String line =
-            String.format("%s Q0 %s %d %f zexim\n", queryId, docScore.getExternalDocid(i), i + 1,
-                docScore.getDocidScore(i));
-        writer.write(line);
-      }
-    }
-  }
+  
 
   /**
    * Given a query string, returns the terms one at a time with stopwords removed and the terms
@@ -334,7 +244,7 @@ public class QryEval {
 
     return params;
   }
-  
+
   /**
    * Get the retrieval model with parameters.
    * 
@@ -353,8 +263,98 @@ public class QryEval {
       model.setParameter("mu", Integer.parseInt(params.get("Indri:mu")));
       model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
     }
-    
+
     return model;
+  }
+  
+  /**
+   * Write the query results into file.
+   * 
+   * @param queryId ID of the query
+   * @param result Result of the query
+   * @throws IOException
+   */
+  private static void writeResults(BufferedWriter writer, String queryId, QryResult result)
+      throws IOException {
+
+    if (result.docScores.scores.size() < 1) {
+      writer.write(queryId + " Q0 dummy 1 0 zexim\n");
+    } else {
+      DocScore docScore = new DocScore(result);
+      for (int i = 0; i < docScore.scores.size() && i < MAX_RESULT; i++) {
+        String line =
+            String.format("%s Q0 %s %d %f zexim\n", queryId, docScore.getExternalDocid(i), i + 1,
+                docScore.getDocidScore(i));
+        writer.write(line);
+      }
+    }
+  }
+  
+  /**
+   * Write an error message and exit. This can be done in other ways, but I wanted something that
+   * takes just one statement so that it is easy to insert checks without cluttering the code.
+   * 
+   * @param message The error message to write before exiting.
+   * @return void
+   */
+  static void fatalError(String message) {
+    System.err.println(message);
+    System.exit(1);
+  }
+
+  /**
+   * Get the external document id for a document specified by an internal document id. If the
+   * internal id doesn't exists, returns null.
+   * 
+   * @param iid The internal document id of the document.
+   * @throws IOException
+   */
+  static String getExternalDocid(int iid) throws IOException {
+    Document d = QryEval.READER.document(iid);
+    String eid = d.get("externalId");
+    return eid;
+  }
+
+  /**
+   * Finds the internal document id for a document specified by its external id, e.g.
+   * clueweb09-enwp00-88-09710. If no such document exists, it throws an exception.
+   * 
+   * @param externalId The external document id of a document.s
+   * @return An internal doc id suitable for finding document vectors etc.
+   * @throws Exception
+   */
+  static int getInternalDocid(String externalId) throws Exception {
+    Query q = new TermQuery(new Term("externalId", externalId));
+
+    IndexSearcher searcher = new IndexSearcher(QryEval.READER);
+    TopScoreDocCollector collector = TopScoreDocCollector.create(1, false);
+    searcher.search(q, collector);
+    ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+    if (hits.length < 1) {
+      throw new Exception("External id not found.");
+    } else {
+      return hits[0].doc;
+    }
+  }
+  
+  /**
+   * Print a message indicating the amount of memory used. The caller can indicate whether garbage
+   * collection should be performed, which slows the program but reduces memory usage.
+   * 
+   * @param gc If true, run the garbage collector before reporting.
+   * @return void
+   */
+  public static void printMemoryUsage(boolean gc) {
+
+    Runtime runtime = Runtime.getRuntime();
+
+    if (gc) {
+      runtime.gc();
+    }
+
+    System.out.println("Memory used:  "
+        + ((runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L)) + " MB");
   }
 
 }
