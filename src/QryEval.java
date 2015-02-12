@@ -71,6 +71,10 @@ public class QryEval {
       model = new RetrievalModelUnrankedBoolean();
     } else if (modelName.equals("RankedBoolean")) {
       model = new RetrievalModelRankedBoolean();
+    } else if (modelName.equals("Indri")) {
+      model = new RetrievalModelIndri();
+      model.setParameter("mu", Double.parseDouble(params.get("Indri:mu")));
+      model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
     } else {
       fatalError("Unidentified retrieval algorithm!");
     }
@@ -338,6 +342,23 @@ public class QryEval {
     }
 
     return params;
+  }
+  
+  private static RetrievalModel getModel(Map<String, String> params) {
+    String modelName = params.get("retrievalAlgorithm");
+    RetrievalModel model = null;
+    if (modelName.equals("UnrankedBoolean")) {
+      model = new RetrievalModelUnrankedBoolean();
+    } else if (modelName.equals("RankedBoolean")) {
+      model = new RetrievalModelRankedBoolean();
+    } else if (modelName.equals("Indri")) {
+      model = new RetrievalModelIndri();
+      model.setParameter("mu", Double.parseDouble(params.get("Indri:mu")));
+      model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
+    } else {
+      fatalError("Unidentified retrieval algorithm!");
+    }
+    return model;
   }
 
 }
