@@ -9,3 +9,4 @@ bin/
 index/
 Sample.teIn
 Sample.qry
+*.param

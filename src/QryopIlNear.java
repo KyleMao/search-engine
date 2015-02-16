@@ -147,8 +147,9 @@ public class QryopIlNear extends QryopIl {
           }
         }
 
-        // Add the location of the first term to locations
-        locations.add(getPositions(ptr0).get(allPos.get(0)));
+        // Add the location of the last term to locations
+        ArgPtr ptr = this.argPtrs.get(allPos.size() - 1);
+        locations.add(getPositions(ptr).get(allPos.get(allPos.size()-1)));
         for (int i = 0; i < allPos.size(); i++) {
           incListElem(allPos, i);
         }
