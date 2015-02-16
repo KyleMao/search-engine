@@ -6,7 +6,9 @@ bin/
 .DS_Store
 
 # Project specific
-index/
+INPUT_DIR/
+TEST_DIR/
+OUTPUT_DIR/
 Sample.teIn
 Sample.qry
 *.param
