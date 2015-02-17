@@ -186,7 +186,7 @@ public class QryopSlAnd extends QryopSl {
     return 0.0;
   }
 
-  /*
+  /**
    * Return a string version of this query operator.
    * 
    * @return The string version of this query operator.

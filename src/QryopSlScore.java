@@ -57,6 +57,8 @@ public class QryopSlScore extends QryopSl {
       return (evaluateBoolean(r));
     else if (r instanceof RetrievalModelIndri) {
       return (evaluateIndri(r));
+    } else if (r instanceof RetrievalModelBM25) {
+      return (evaluateBM25(r));
     }
 
     return null;
@@ -118,9 +120,49 @@ public class QryopSlScore extends QryopSl {
     this.mu = r.getParameter("mu");
 
     for (int i = 0; i < result.invertedList.df; i++) {
-      int tf = result.invertedList.postings.get(i).tf;
-      long docLen = QryEval.dls.getDocLength(this.field, result.invertedList.postings.get(i).docid);
-      double score = (1 - lambda) * (tf + mu * p_mle) / ((double)docLen + mu) + lambda * p_mle;
+      double tf = result.invertedList.postings.get(i).tf;
+      long docLen = QryEval.dls.getDocLength(field, result.invertedList.postings.get(i).docid);
+      double score = (1 - lambda) * (tf + mu * p_mle) / ((double) docLen + mu) + lambda * p_mle;
+      result.docScores.add(result.invertedList.postings.get(i).docid, score);
+    }
+
+    // The SCORE operator should not return a populated inverted list.
+    // If there is one, replace it with an empty inverted list.
+    if (result.invertedList.df > 0)
+      result.invertedList = new InvList();
+
+    return result;
+  }
+
+  /**
+   * Evaluate the query operator for BM25 retrieval model.
+   * 
+   * @param r A retrieval model that controls how the operator behaves.
+   * @return The result of evaluating the query.
+   * @throws IOException
+   */
+  public QryResult evaluateBM25(RetrievalModel r) throws IOException {
+
+    // Evaluate the query argument.
+    QryResult result = args.get(0).evaluate(r);
+
+    double b = r.getParameter("b");
+    double k_1 = r.getParameter("k_1");
+    double k_3 = r.getParameter("k_3");
+    this.field = result.invertedList.field;
+    double N = QryEval.READER.getDocCount(field);
+    double avglen = QryEval.READER.getSumTotalTermFreq(field) / N;
+    double qtf = 1.0;
+
+    for (int i = 0; i < result.invertedList.df; i++) {
+      double tf = result.invertedList.postings.get(i).tf;
+      long docLen = QryEval.dls.getDocLength(field, result.invertedList.postings.get(i).docid);
+      double idf_weight =
+          Math.log((N - result.invertedList.df + 0.5) / (0.5 + result.invertedList.df));
+      idf_weight = Math.max(idf_weight, 0.0);
+      double tf_weight = tf / (tf + k_1 * ((1 - b) + b * docLen / avglen));
+      double user_weight = (k_3 + 1) * qtf / (k_3 + qtf);
+      double score = idf_weight * tf_weight * user_weight;
       result.docScores.add(result.invertedList.postings.get(i).docid, score);
     }
 
@@ -146,7 +188,7 @@ public class QryopSlScore extends QryopSl {
 
     if (r instanceof RetrievalModelIndri) {
       long docLen = QryEval.dls.getDocLength(this.field, (int) docid);
-      double score = (1 - lambda) * mu * p_mle / ((double)docLen + mu) + lambda * p_mle;
+      double score = (1 - lambda) * mu * p_mle / ((double) docLen + mu) + lambda * p_mle;
       return score;
     }
 

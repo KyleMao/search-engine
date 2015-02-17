@@ -144,6 +144,9 @@ public class QryEval {
       } else if (token.equalsIgnoreCase("#syn")) {
         currentOp = new QryopIlSyn();
         stack.push(currentOp);
+      } else if (token.equalsIgnoreCase("#sum")) {
+        currentOp = new QryopSlSum();
+        stack.push(currentOp);
       } else if (token.toLowerCase().startsWith("#near")) {
         currentOp = new QryopIlNear(Integer.parseInt(token.substring(token.indexOf('/') + 1)));
         stack.push(currentOp);
@@ -274,6 +277,7 @@ public class QryEval {
       model.setParameter("b", Double.parseDouble(params.get("BM25:b")));
       model.setParameter("k_1", Double.parseDouble(params.get("BM25:k_1")));
       model.setParameter("k_3", Double.parseDouble(params.get("BM25:k_3")));
+      dls = new DocLengthStore(READER);
     }
 
     return model;

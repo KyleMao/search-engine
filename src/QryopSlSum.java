@@ -1,4 +1,6 @@
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This class implements the SUM operator for all retrieval models.
@@ -45,18 +47,58 @@ public class QryopSlSum extends QryopSl {
     this.args.add(q);
   }
 
-  /*
-   * (non-Javadoc)
+  /**
+   * Evaluates the query operator, including any child operators and returns the result.
    * 
-   * @see Qryop#evaluate(RetrievalModel)
+   * @param r A retrieval model that controls how the operator behaves
+   * @return The result of evaluating the query
+   * @throws IOException
    */
   @Override
   public QryResult evaluate(RetrievalModel r) throws IOException {
-    // TODO Auto-generated method stub
+
+    if (r instanceof RetrievalModelBM25) {
+      return evaluateBM25(r);
+    }
+
     return null;
   }
 
-  /*
+  /**
+   * Evaluates the query operator for Indri retrieval model, including any child operators and
+   * returns the result.
+   * 
+   * @param r A retrieval model that controls how the operator behaves.
+   * @return The result of evaluating the query.
+   * @throws IOException
+   */
+  public QryResult evaluateBM25(RetrievalModel r) throws IOException {
+
+    // Initialization
+    allocArgPtrs(r);
+    QryResult result = new QryResult();
+
+    Map<Integer, Double> docScores = new HashMap<Integer, Double>();
+    for (ArgPtr argPtr : argPtrs) {
+      for (; argPtr.nextDoc < argPtr.scoreList.scores.size(); argPtr.nextDoc++) {
+        int docid = argPtr.scoreList.getDocid(argPtr.nextDoc);
+        if (docScores.containsKey(docid)) {
+          docScores.put(docid,
+              docScores.get(docid) + argPtr.scoreList.getDocidScore(argPtr.nextDoc));
+        } else {
+          docScores.put(docid, argPtr.scoreList.getDocidScore(argPtr.nextDoc));
+        }
+      }
+    }
+    
+    for (Map.Entry<Integer, Double> entry : docScores.entrySet()) {
+      result.docScores.add(entry.getKey(), entry.getValue());
+    }
+
+    return result;
+  }
+
+  /**
    * Return a string version of this query operator.
    * 
    * @return The string version of this query operator.

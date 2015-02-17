@@ -117,7 +117,7 @@ public class QryopSlOr extends QryopSl {
     return result;
   }
 
-  /*
+  /**
    * Return a string version of this query operator.
    * 
    * @return The string version of this query operator.
