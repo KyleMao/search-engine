@@ -60,22 +60,6 @@ public class QryopIlNear extends QryopIl {
   @Override
   public QryResult evaluate(RetrievalModel r) throws IOException {
 
-    if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean)
-      return (evaluateBoolean(r));
-
-    return null;
-  }
-
-  /**
-   * Evaluates the query operator for boolean retrieval models, including any child operators and
-   * returns the result.
-   * 
-   * @param r A retrieval model that controls how the operator behaves.
-   * @return The result of evaluating the query.
-   * @throws IOException
-   */
-  public QryResult evaluateBoolean(RetrievalModel r) throws IOException {
-
     // Initialization
     allocArgPtrs(r);
     QryResult result = new QryResult();
@@ -144,7 +128,7 @@ public class QryopIlNear extends QryopIl {
 
         // Add the location of the last term to locations
         ArgPtr ptr = this.argPtrs.get(allPos.size() - 1);
-        locations.add(getPositions(ptr).get(allPos.get(allPos.size()-1)));
+        locations.add(getPositions(ptr).get(allPos.get(allPos.size() - 1)));
         for (int i = 0; i < allPos.size(); i++) {
           incListElem(allPos, i);
         }
@@ -154,6 +138,7 @@ public class QryopIlNear extends QryopIl {
         result.invertedList.appendPosting(ptr0Docid, locations);
       }
     }
+    result.invertedList.field = ptr0.invList.field;
 
     return result;
   }
