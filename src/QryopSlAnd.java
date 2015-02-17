@@ -42,6 +42,9 @@ public class QryopSlAnd extends QryopSl {
 
     if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean)
       return (evaluateBoolean(r));
+    else if (r instanceof RetrievalModelIndri) {
+      return (evaluateIndri(r));
+    }
 
     return null;
   }
@@ -57,14 +60,12 @@ public class QryopSlAnd extends QryopSl {
   public QryResult evaluateBoolean(RetrievalModel r) throws IOException {
 
     // Initialization
-
     allocArgPtrs(r);
     QryResult result = new QryResult();
 
     // Sort the arguments so that the shortest lists are first. This
     // improves the efficiency of exact-match AND without changing
     // the result.
-
     for (int i = 0; i < (this.argPtrs.size() - 1); i++) {
       for (int j = i + 1; j < this.argPtrs.size(); j++) {
         if (this.argPtrs.get(i).scoreList.scores.size() > this.argPtrs.get(j).scoreList.scores
@@ -129,6 +130,41 @@ public class QryopSlAnd extends QryopSl {
   }
 
   /**
+   * Evaluates the query operator for Indri retrieval model, including any child operators and
+   * returns the result.
+   * 
+   * @param r A retrieval model that controls how the operator behaves.
+   * @return The result of evaluating the query.
+   * @throws IOException
+   */
+  public QryResult evaluateIndri(RetrievalModel r) throws IOException {
+
+    // Initialization
+    allocArgPtrs(r);
+    QryResult result = new QryResult();
+
+    while (!isListEnd()) {
+      double docScore = 1.0;
+      int currDocid = getMinDocid();
+      for (int i = 0; i < argPtrs.size(); i++) {
+        ArgPtr argPtr = argPtrs.get(i);
+        if (argPtr.nextDoc < argPtr.scoreList.scores.size()
+            && argPtr.scoreList.getDocid(argPtr.nextDoc) == currDocid) {
+          double p = argPtr.scoreList.getDocidScore(argPtr.nextDoc);
+          docScore *= Math.pow(p, 1.0 / (double) args.size());
+          argPtr.nextDoc++;
+        } else {
+          double p = ((QryopSl)args.get(i)).getDefaultScore(r, currDocid);
+          docScore *= Math.pow(p, 1.0 / (double) args.size());
+        }
+      }
+      result.docScores.add(currDocid, docScore);
+    }
+
+    return result;
+  }
+
+  /**
    * Calculate the default score for the specified document if it does not match the query operator.
    * This score is 0 for many retrieval models, but not all retrieval models.
    * 
@@ -138,8 +174,14 @@ public class QryopSlAnd extends QryopSl {
    */
   public double getDefaultScore(RetrievalModel r, long docid) throws IOException {
 
-    if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean)
-      return (0.0);
+    if (r instanceof RetrievalModelIndri) {
+      double docScore = 1.0;
+      for (Qryop arg : args) {
+        double p = ((QryopSl)arg).getDefaultScore(r, docid);
+        docScore *= Math.pow(p, 1.0 / (double) args.size());
+      }
+      return docScore;
+    }
 
     return 0.0;
   }
@@ -158,4 +200,37 @@ public class QryopSlAnd extends QryopSl {
 
     return ("#AND( " + result + ")");
   }
+
+  /*
+   * Check whether all lists have been retrieved.
+   * 
+   * @return A boolean stating whether all lists have been retrieved.
+   */
+  private boolean isListEnd() {
+    for (ArgPtr argPtr : argPtrs) {
+      if (argPtr.nextDoc < argPtr.scoreList.scores.size()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * Get the smallest DocID.
+   * 
+   * @return The smallest DocID.
+   */
+  private int getMinDocid() {
+    int minDocid = Integer.MAX_VALUE;
+    for (ArgPtr argPtr : argPtrs) {
+      if (argPtr.nextDoc < argPtr.scoreList.scores.size()
+          && argPtr.scoreList.getDocid(argPtr.nextDoc) < minDocid) {
+        minDocid = argPtr.scoreList.getDocid(argPtr.nextDoc);
+      }
+    }
+
+    return minDocid;
+  }
+
 }

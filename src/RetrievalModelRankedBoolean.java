@@ -33,5 +33,18 @@ public class RetrievalModelRankedBoolean extends RetrievalModel {
         + parameterName);
     return false;
   }
+  
+  /**
+   *  Get a retrieval model parameter.
+   *  
+   *  @param parameterName The name of the parameter to set.
+   *  @return value of the parameter.
+   */
+  @Override
+  public double getParameter (String parameterName) {
+    System.err.println("Error: Unknown parameter name for retrieval model " + "RankedBoolean: "
+        + parameterName);
+    return 0.0;
+  }
 
 }

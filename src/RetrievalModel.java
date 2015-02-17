@@ -25,4 +25,11 @@ public abstract class RetrievalModel {
    *  @return true if the parameter is set successfully, false otherwise.
    */
   public abstract boolean setParameter (String parameterName, String value);
+  
+  /**
+   *  Get a retrieval model parameter.
+   *  @param parameterName The name of the parameter to set.
+   *  @return value of the parameter.
+   */
+  public abstract double getParameter (String parameterName);
 }

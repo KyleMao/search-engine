@@ -31,6 +31,7 @@ public class QryEval {
   // own headaches.
 
   public static IndexReader READER;
+  public static DocLengthStore dls;
 
   // Create and configure an English analyzer that will be used for
   // query parsing.
@@ -250,8 +251,9 @@ public class QryEval {
    * 
    * @param params A map of parameters for the search engine
    * @return A retrieval model, or null if no model matched
+   * @throws IOException 
    */
-  private static RetrievalModel getModel(Map<String, String> params) {
+  private static RetrievalModel getModel(Map<String, String> params) throws IOException {
     String modelName = params.get("retrievalAlgorithm");
     RetrievalModel model = null;
     if (modelName.equals("UnrankedBoolean")) {
@@ -262,6 +264,7 @@ public class QryEval {
       model = new RetrievalModelIndri();
       model.setParameter("mu", Integer.parseInt(params.get("Indri:mu")));
       model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
+      dls = new DocLengthStore(READER);
     }
 
     return model;
