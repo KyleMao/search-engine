@@ -118,6 +118,8 @@ public class QryEval {
       qString = "#or(" + qString + ")";
     } else if (r instanceof RetrievalModelIndri) {
       qString = "#and(" + qString + ")";
+    } else if (r instanceof RetrievalModelBM25) {
+      qString = "#sum(" + qString + ")";
     }
 
     // Tokenize the query.
@@ -254,8 +256,10 @@ public class QryEval {
    * @throws IOException 
    */
   private static RetrievalModel getModel(Map<String, String> params) throws IOException {
+    
     String modelName = params.get("retrievalAlgorithm");
     RetrievalModel model = null;
+    
     if (modelName.equals("UnrankedBoolean")) {
       model = new RetrievalModelUnrankedBoolean();
     } else if (modelName.equals("RankedBoolean")) {
@@ -265,6 +269,11 @@ public class QryEval {
       model.setParameter("mu", Integer.parseInt(params.get("Indri:mu")));
       model.setParameter("lambda", Double.parseDouble(params.get("Indri:lambda")));
       dls = new DocLengthStore(READER);
+    } else if (modelName.equals("BM25")) {
+      model = new RetrievalModelBM25();
+      model.setParameter("b", Double.parseDouble(params.get("BM25:b")));
+      model.setParameter("k_1", Double.parseDouble(params.get("BM25:k_1")));
+      model.setParameter("k_3", Double.parseDouble(params.get("BM25:k_3")));
     }
 
     return model;
