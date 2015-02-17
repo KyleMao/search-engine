@@ -113,7 +113,7 @@ public class QryEval {
     // Add a default query operator to an unstructured query. This
     // is a tiny bit easier if unnecessary whitespace is removed.
     qString = qString.trim();
-    // Add default operator
+    // Add default operator for different retrieval models
     if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean) {
       qString = "#or(" + qString + ")";
     } else if (r instanceof RetrievalModelIndri) {

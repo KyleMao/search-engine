@@ -112,6 +112,7 @@ public class QryopSlScore extends QryopSl {
     // Evaluate the query argument.
     QryResult result = args.get(0).evaluate(r);
 
+    // Save field, p_mle, lambda, and mu into the SCORE operator for future default score use.
     int ctf = result.invertedList.ctf;
     this.field = result.invertedList.field;
     long colLen = QryEval.READER.getSumTotalTermFreq(field);
@@ -146,6 +147,8 @@ public class QryopSlScore extends QryopSl {
     // Evaluate the query argument.
     QryResult result = args.get(0).evaluate(r);
 
+    // No need to save the parameters into SCORE operator because BM25 does not make use of
+    // QryopSlScore.defaultScore()
     double b = r.getParameter("b");
     double k_1 = r.getParameter("k_1");
     double k_3 = r.getParameter("k_3");
