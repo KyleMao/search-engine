@@ -94,6 +94,8 @@ public class QryopSlSum extends QryopSl {
     for (Map.Entry<Integer, Double> entry : docScores.entrySet()) {
       result.docScores.add(entry.getKey(), entry.getValue());
     }
+    
+    freeArgPtrs();
 
     return result;
   }

@@ -139,6 +139,8 @@ public class QryopIlNear extends QryopIl {
       }
     }
     result.invertedList.field = ptr0.invList.field;
+    
+    freeArgPtrs();
 
     return result;
   }
