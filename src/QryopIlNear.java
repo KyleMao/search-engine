@@ -1,5 +1,5 @@
 /**
- * This class implements the AND operator for all retrieval models.
+ * This class implements the NEAR operator for all retrieval models.
  * 
  * @author KyleMao
  *
@@ -19,7 +19,7 @@ public class QryopIlNear extends QryopIl {
   /**
    * Constructor. Create a NEAR operator with a specific distance.
    * 
-   * @param distance
+   * @param distance Max term distance of two candidate terms
    */
   public QryopIlNear(int distance) {
     this.distance = distance;
@@ -29,6 +29,7 @@ public class QryopIlNear extends QryopIl {
    * It is convenient for the constructor to accept a variable number of arguments. Thus new
    * qryopNear (distance, arg1, arg2, arg3, ...).
    * 
+   * @param distance Max term distance of two candidate terms
    * @param q A query argument (a query operator).
    */
   public QryopIlNear(int distance, Qryop... q) {
