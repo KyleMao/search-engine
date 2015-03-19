@@ -116,7 +116,7 @@ public class QryopIlNear extends QryopIl {
               break EVALUATELOCATIONS;
             }
             j--; // Backtrack
-          } else if (jPos - iPos <= distance) { // Got one.
+          } else if (jPos - iPos <= distance) { // Good so far.
             continue;
           } else { // Cannot match, use greedy algorithm.
             incListElem(allPos, 0);

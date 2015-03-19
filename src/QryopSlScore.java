@@ -153,8 +153,8 @@ public class QryopSlScore extends QryopSl {
     double k_1 = r.getParameter("k_1");
     double k_3 = r.getParameter("k_3");
     this.field = result.invertedList.field;
-    double N = QryEval.READER.getDocCount(field);
-    double avglen = (double) QryEval.READER.getSumTotalTermFreq(field) / (double) N;
+    double N = QryEval.READER.numDocs();
+    double avglen = (double) QryEval.READER.getSumTotalTermFreq(field) / QryEval.READER.getDocCount(field);
     double qtf = 1.0;
     double df = result.invertedList.df;
 
@@ -162,7 +162,7 @@ public class QryopSlScore extends QryopSl {
       double tf = result.invertedList.postings.get(i).tf;
       double docLen = QryEval.dls.getDocLength(field, result.invertedList.postings.get(i).docid);
       double idf_weight =
-          Math.log((N - df + 0.5) / (0.5 + df));
+          Math.log((N - df + .5) / (df + .5));
       idf_weight = Math.max(idf_weight, 0.0);
       double tf_weight = tf / (tf + k_1 * ((1 - b) + b * docLen / avglen));
       double user_weight = (k_3 + 1) * qtf / (k_3 + qtf);

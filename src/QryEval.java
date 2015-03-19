@@ -132,7 +132,7 @@ public class QryEval {
     while (tokens.hasMoreTokens()) {
 
       token = tokens.nextToken();
-      
+
       if (token.matches("[ ,(\t\n\r]")) {
         // Ignore most delimiters.
       } else if (token.equalsIgnoreCase("#and")) {
@@ -149,6 +149,9 @@ public class QryEval {
         stack.push(currentOp);
       } else if (token.toLowerCase().startsWith("#near")) {
         currentOp = new QryopIlNear(Integer.parseInt(token.substring(token.indexOf('/') + 1)));
+        stack.push(currentOp);
+      } else if (token.toLowerCase().startsWith("#window")) {
+        currentOp = new QryopIlWindow(Integer.parseInt(token.substring(token.indexOf('/') + 1)));
         stack.push(currentOp);
       } else if (token.startsWith(")")) { // Finish current query operator.
         // If the current query operator is not an argument to
@@ -174,7 +177,7 @@ public class QryEval {
           System.err.println("Error: Invalid query term.");
           return null;
         }
-        
+
         String[] processedToken = tokenizeQuery(tokenAndField[0]);
         if (processedToken.length > 1) {
           System.err.println("Error: Invalid query term.");
@@ -195,7 +198,7 @@ public class QryEval {
     return currentOp;
   }
 
-  
+
 
   /**
    * Given a query string, returns the terms one at a time with stopwords removed and the terms
@@ -256,13 +259,13 @@ public class QryEval {
    * 
    * @param params A map of parameters for the search engine
    * @return A retrieval model, or null if no model matched
-   * @throws IOException 
+   * @throws IOException
    */
   private static RetrievalModel getModel(Map<String, String> params) throws IOException {
-    
+
     String modelName = params.get("retrievalAlgorithm");
     RetrievalModel model = null;
-    
+
     if (modelName.equals("UnrankedBoolean")) {
       model = new RetrievalModelUnrankedBoolean();
     } else if (modelName.equals("RankedBoolean")) {
@@ -282,7 +285,7 @@ public class QryEval {
 
     return model;
   }
-  
+
   /**
    * Write the query results into file.
    * 
@@ -305,7 +308,7 @@ public class QryEval {
       }
     }
   }
-  
+
   /**
    * Write an error message and exit. This can be done in other ways, but I wanted something that
    * takes just one statement so that it is easy to insert checks without cluttering the code.
@@ -353,7 +356,7 @@ public class QryEval {
       return hits[0].doc;
     }
   }
-  
+
   /**
    * Print a message indicating the amount of memory used. The caller can indicate whether garbage
    * collection should be performed, which slows the program but reduces memory usage.
