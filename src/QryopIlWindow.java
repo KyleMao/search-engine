@@ -102,44 +102,30 @@ public class QryopIlWindow extends QryopIl {
           }
         }
 
+        // Get the lower and upper bounds of the term locations
         int lowerBound = getPositions(ptr0).get(allPos.get(0));
         int upperBound = lowerBound;
-        for (int j = 0; j < allPos.size(); j++) {
+        int lowerBoundTerm = 0;
 
+        for (int j = 1; j < allPos.size(); j++) {
           ArgPtr ptrj = this.argPtrs.get(j);
           int jPos = getPositions(ptrj).get(allPos.get(j));
-
-          if (j == 0) {
+          if (jPos < lowerBound) {
             lowerBound = jPos;
+            lowerBoundTerm = j;
+          } else if (jPos > upperBound) {
             upperBound = jPos;
-          } else {
-            if (jPos < upperBound - distance) { // Current position too small.
-              incListElem(allPos, j);
-              if (allPos.get(j) >= getPositions(ptrj).size()) {
-                break EVALUATELOCATIONS;
-              }
-              j--; // Backtrack
-            } else if (jPos > lowerBound + distance) { // Current position too large.
-              incListElem(allPos, 0);
-              if (allPos.get(0) >= getPositions(ptr0).size()) {
-                break EVALUATELOCATIONS;
-              }
-              continue EVALUATELOCATIONS;
-            } else { // Good so far.
-              if (jPos < lowerBound) {
-                lowerBound = jPos;
-              } else if (jPos > upperBound) {
-                upperBound = jPos;
-              }
-            }
           }
         }
 
-        // Add the location of the last term to locations
-        ArgPtr ptr = this.argPtrs.get(allPos.size() - 1);
-        locations.add(getPositions(ptr).get(allPos.get(allPos.size() - 1)));
-        for (int i = 0; i < allPos.size(); i++) {
-          incListElem(allPos, i);
+        if (upperBound - lowerBound < distance) {
+          // Add the location of the last term to locations
+          locations.add(upperBound);
+          for (int i = 0; i < allPos.size(); i++) {
+            incListElem(allPos, i);
+          }
+        } else {
+          incListElem(allPos, lowerBoundTerm);
         }
       }
 
