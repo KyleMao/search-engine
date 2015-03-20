@@ -1,18 +1,19 @@
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * This class implements the SUM operator for all retrieval models.
  * 
  * @author KyleMao
  *
  */
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 public class QryopSlSum extends QryopSl {
 
   /**
    * It is convenient for the constructor to accept a variable number of arguments. Thus new
-   * qryopAnd (arg1, arg2, arg3, ...).
+   * qryopSum (arg1, arg2, arg3, ...).
    * 
    * @param q A query argument (a query operator).
    */
