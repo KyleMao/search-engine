@@ -81,6 +81,28 @@ public class QryopSlWsum extends QryopSl {
     // Initialization
     allocArgPtrs(r);
     QryResult result = new QryResult();
+    double sumW = 0.0;
+    for (Double w : weights) {
+      sumW += w;
+    }
+
+    while (!isListEnd()) {
+      double docScore = 0.0;
+      int currDocid = getMinDocid();
+      for (int i = 0; i < argPtrs.size(); i++) {
+        ArgPtr argPtr = argPtrs.get(i);
+        if (argPtr.nextDoc < argPtr.scoreList.scores.size()
+            && argPtr.scoreList.getDocid(argPtr.nextDoc) == currDocid) {
+          double p = argPtr.scoreList.getDocidScore(argPtr.nextDoc);
+          docScore += p * weights.get(i) / sumW;
+          argPtr.nextDoc++;
+        } else {
+          double p = ((QryopSl) args.get(i)).getDefaultScore(r, currDocid);
+          docScore += p * weights.get(i) / sumW;
+        }
+      }
+      result.docScores.add(currDocid, docScore);
+    }
 
     return result;
   }
