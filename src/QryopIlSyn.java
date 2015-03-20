@@ -156,5 +156,9 @@ public class QryopIlSyn extends QryopIl {
   public boolean needWeight() {
     return false;
   }
+
+  @Override
+  public void removeWeight() throws IOException {
+  }
   
 }

@@ -125,4 +125,8 @@ public class QryopSlSum extends QryopSl {
     return false;
   }
 
+  @Override
+  public void removeWeight() throws IOException {
+  }
+
 }

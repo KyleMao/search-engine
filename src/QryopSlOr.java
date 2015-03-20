@@ -141,4 +141,8 @@ public class QryopSlOr extends QryopSl {
     return false;
   }
 
+  @Override
+  public void removeWeight() throws IOException {
+  }
+
 }

@@ -46,14 +46,23 @@ public abstract class Qryop {
    * @throws IOException
    */
   public abstract void addWeight(double w) throws IOException;
-  
+
+  /**
+   * Removes the last weight from the list of weights. This simplifies the design of some query
+   * parsing architectures.
+   * 
+   * @return void
+   * @throws IOException
+   */
+  public abstract void removeWeight() throws IOException;
+
   /**
    * Checks whether a query operator needs to read weight.
    * 
    * @return needWeight
    */
   public abstract boolean needWeight();
-  
+
   /**
    * Use the specified retrieval model to evaluate the query arguments. Define and return ArgPtrs
    * that the query operator can use.

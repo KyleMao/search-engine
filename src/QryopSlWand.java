@@ -145,4 +145,15 @@ public class QryopSlWand extends QryopSl {
     return (this.weights.size() <= this.args.size());
   }
 
+  /**
+   * Removes the last weight from the list of weights. This simplifies the design of some query
+   * parsing architectures.
+   * 
+   * @return void
+   * @throws IOException
+   */
+  public void removeWeight() throws IOException {
+    this.weights.remove(this.weights.size() - 1);
+  }
+
 }

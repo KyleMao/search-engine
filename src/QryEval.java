@@ -125,7 +125,6 @@ public class QryEval {
     // Tokenize the query.
     StringTokenizer tokens = new StringTokenizer(qString, "\t\n\r ,()", true);
     String token = null;
-    double weight = 0.0;
     boolean hasWeight = false;
 
     // Each pass of the loop processes one token. To improve
@@ -177,7 +176,7 @@ public class QryEval {
       } else if (isNumeric(token) && (currentOp != null) && (currentOp.needWeight())
           && (!hasWeight)) {
         hasWeight = true;
-        weight = Double.parseDouble(token);
+        currentOp.addWeight(Double.parseDouble(token));
       } else {
         // Lexical processing of the token before creating the query term, and check to see whether
         // the token specifies a particular field (e.g., apple.title).
@@ -196,7 +195,8 @@ public class QryEval {
           return null;
         } else if (processedToken.length > 0) {
           currentOp.add(new QryopIlTerm(processedToken[0], tokenAndField[1]));
-          currentOp.addWeight(weight);
+        } else if (hasWeight) {
+          currentOp.removeWeight();
         }
         hasWeight = false;
       }

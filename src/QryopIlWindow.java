@@ -188,4 +188,8 @@ public class QryopIlWindow extends QryopIl {
     return false;
   }
 
+  @Override
+  public void removeWeight() throws IOException {
+  }
+
 }

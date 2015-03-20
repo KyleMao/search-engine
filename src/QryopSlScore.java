@@ -222,5 +222,9 @@ public class QryopSlScore extends QryopSl {
   public boolean needWeight() {
     return false;
   }
+
+  @Override
+  public void removeWeight() throws IOException {
+  }
   
 }

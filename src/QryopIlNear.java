@@ -194,4 +194,8 @@ public class QryopIlNear extends QryopIl {
     return false;
   }
 
+  @Override
+  public void removeWeight() throws IOException {
+  }
+
 }
