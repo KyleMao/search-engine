@@ -116,4 +116,13 @@ public class QryopSlSum extends QryopSl {
     return ("#SUM( " + result + ")");
   }
 
+  @Override
+  public void addWeight(double w) throws IOException {
+  }
+
+  @Override
+  public boolean needWeight() {
+    return false;
+  }
+
 }

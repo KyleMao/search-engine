@@ -49,4 +49,36 @@ public abstract class QryopSl extends Qryop {
    */
   public abstract double getDefaultScore(RetrievalModel r, long docid) throws IOException;
 
+  /*
+   * Check whether all lists have been retrieved.
+   * 
+   * @return A boolean stating whether all lists have been retrieved.
+   */
+  protected boolean isListEnd() {
+    for (ArgPtr argPtr : argPtrs) {
+      if (argPtr.nextDoc < argPtr.scoreList.scores.size()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * Get the smallest DocID.
+   * 
+   * @return The smallest DocID.
+   */
+  protected int getMinDocid() {
+    int minDocid = Integer.MAX_VALUE;
+    for (ArgPtr argPtr : argPtrs) {
+      if (argPtr.nextDoc < argPtr.scoreList.scores.size()
+          && argPtr.scoreList.getDocid(argPtr.nextDoc) < minDocid) {
+        minDocid = argPtr.scoreList.getDocid(argPtr.nextDoc);
+      }
+    }
+
+    return minDocid;
+  }
+
 }

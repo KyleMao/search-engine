@@ -31,12 +31,29 @@ public abstract class Qryop {
    * Appends an argument to the list of query operator arguments. This simplifies the design of some
    * query parsing architectures.
    * 
-   * @param {q} q The query argument (query operator) to append.
+   * @param q The query argument (query operator) to append.
    * @return void
    * @throws IOException
    */
   public abstract void add(Qryop q) throws IOException;
 
+  /**
+   * Appends a weight to the list of weights. This simplifies the design of some query parsing
+   * architectures.
+   * 
+   * @param w The weight to append.
+   * @return void
+   * @throws IOException
+   */
+  public abstract void addWeight(double w) throws IOException;
+  
+  /**
+   * Checks whether a query operator needs to read weight.
+   * 
+   * @return needWeight
+   */
+  public abstract boolean needWeight();
+  
   /**
    * Use the specified retrieval model to evaluate the query arguments. Define and return ArgPtrs
    * that the query operator can use.

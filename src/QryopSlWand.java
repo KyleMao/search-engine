@@ -6,6 +6,7 @@
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class QryopSlWand extends QryopSl {
@@ -18,8 +19,8 @@ public class QryopSlWand extends QryopSl {
    * @param weights A weight list for the query arguments.
    * @param q A query argument (a query operator).
    */
-  public QryopSlWand(List<Double> weights, Qryop... q) {
-    this.weights = weights;
+  public QryopSlWand(Qryop... q) {
+    this.weights = new ArrayList<Double>();
     for (int i = 0; i < q.length; i++)
       this.args.add(q[i]);
   }
@@ -50,15 +51,60 @@ public class QryopSlWand extends QryopSl {
     this.args.add(q);
   }
 
-  /*
-   * (non-Javadoc)
+  /**
+   * Evaluates the query operator, including any child operators and returns the result.
    * 
-   * @see Qryop#evaluate(RetrievalModel)
+   * @param r A retrieval model that controls how the operator behaves
+   * @return The result of evaluating the query
+   * @throws IOException
    */
   @Override
   public QryResult evaluate(RetrievalModel r) throws IOException {
-    // TODO Auto-generated method stub
+
+    if (r instanceof RetrievalModelIndri) {
+      return (evaluateIndri(r));
+    }
+
     return null;
+  }
+
+  /**
+   * Evaluates the query operator for Indri retrieval model, including any child operators and
+   * returns the result.
+   * 
+   * @param r A retrieval model that controls how the operator behaves.
+   * @return The result of evaluating the query.
+   * @throws IOException
+   */
+  public QryResult evaluateIndri(RetrievalModel r) throws IOException {
+
+    // Initialization
+    allocArgPtrs(r);
+    QryResult result = new QryResult();
+    double sumW = 0.0;
+    for (Double w : weights) {
+      sumW += w;
+    }
+
+    while (!isListEnd()) {
+      double docScore = 1.0;
+      int currDocid = getMinDocid();
+      for (int i = 0; i < argPtrs.size(); i++) {
+        ArgPtr argPtr = argPtrs.get(i);
+        if (argPtr.nextDoc < argPtr.scoreList.scores.size()
+            && argPtr.scoreList.getDocid(argPtr.nextDoc) == currDocid) {
+          double p = argPtr.scoreList.getDocidScore(argPtr.nextDoc);
+          docScore *= Math.pow(p, weights.get(i) / sumW);
+          argPtr.nextDoc++;
+        } else {
+          double p = ((QryopSl) args.get(i)).getDefaultScore(r, currDocid);
+          docScore *= Math.pow(p, weights.get(i) / sumW);
+        }
+      }
+      result.docScores.add(currDocid, docScore);
+    }
+
+    return result;
   }
 
   /**
@@ -74,6 +120,29 @@ public class QryopSlWand extends QryopSl {
       result += this.weights.get(i) + " " + this.args.get(i).toString() + " ";
 
     return ("#WAND( " + result + ")");
+  }
+
+  /**
+   * Appends a weight to the list of weights. This simplifies the design of some query parsing
+   * architectures.
+   * 
+   * @param w The weight to append.
+   * @return void
+   * @throws IOException
+   */
+  @Override
+  public void addWeight(double w) throws IOException {
+    this.weights.add(w);
+  }
+
+  /**
+   * Checks whether a query operator needs to read weight.
+   * 
+   * @return needWeight
+   */
+  @Override
+  public boolean needWeight() {
+    return (this.weights.size() <= this.args.size());
   }
 
 }

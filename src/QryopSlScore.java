@@ -213,4 +213,14 @@ public class QryopSlScore extends QryopSl {
 
     return ("#SCORE( " + result + ")");
   }
+
+  @Override
+  public void addWeight(double w) throws IOException {
+  }
+
+  @Override
+  public boolean needWeight() {
+    return false;
+  }
+  
 }

@@ -6,20 +6,21 @@
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class QryopSlWsum extends QryopSl {
-  
+
   List<Double> weights;
-  
+
   /**
    * It is convenient for the constructor to accept a variable number of arguments.
    * 
    * @param weights A weight list for the query arguments.
    * @param q A query argument (a query operator).
    */
-  public QryopSlWsum(List<Double> weights, Qryop... q) {
-    this.weights = weights;
+  public QryopSlWsum(Qryop... q) {
+    this.weights = new ArrayList<Double>();
     for (int i = 0; i < q.length; i++)
       this.args.add(q[i]);
   }
@@ -50,15 +51,38 @@ public class QryopSlWsum extends QryopSl {
     this.args.add(q);
   }
 
-  /*
-   * (non-Javadoc)
+  /**
+   * Evaluates the query operator, including any child operators and returns the result.
    * 
-   * @see Qryop#evaluate(RetrievalModel)
+   * @param r A retrieval model that controls how the operator behaves
+   * @return The result of evaluating the query
+   * @throws IOException
    */
   @Override
   public QryResult evaluate(RetrievalModel r) throws IOException {
-    // TODO Auto-generated method stub
+
+    if (r instanceof RetrievalModelIndri) {
+      return (evaluateIndri(r));
+    }
+
     return null;
+  }
+
+  /**
+   * Evaluates the query operator for Indri retrieval model, including any child operators and
+   * returns the result.
+   * 
+   * @param r A retrieval model that controls how the operator behaves.
+   * @return The result of evaluating the query.
+   * @throws IOException
+   */
+  public QryResult evaluateIndri(RetrievalModel r) throws IOException {
+
+    // Initialization
+    allocArgPtrs(r);
+    QryResult result = new QryResult();
+
+    return result;
   }
 
   /**
@@ -74,6 +98,29 @@ public class QryopSlWsum extends QryopSl {
       result += this.weights.get(i) + " " + this.args.get(i).toString() + " ";
 
     return ("#WSUM( " + result + ")");
+  }
+
+  /**
+   * Appends a weight to the list of weights. This simplifies the design of some query parsing
+   * architectures.
+   * 
+   * @param w The weight to append.
+   * @return void
+   * @throws IOException
+   */
+  @Override
+  public void addWeight(double w) throws IOException {
+    this.weights.add(w);
+  }
+
+  /**
+   * Checks whether a query operator needs to read weight.
+   * 
+   * @return needWeight
+   */
+  @Override
+  public boolean needWeight() {
+    return (this.weights.size() <= this.args.size());
   }
 
 }

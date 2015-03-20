@@ -125,6 +125,8 @@ public class QryEval {
     // Tokenize the query.
     StringTokenizer tokens = new StringTokenizer(qString, "\t\n\r ,()", true);
     String token = null;
+    double weight = 0.0;
+    boolean hasWeight = false;
 
     // Each pass of the loop processes one token. To improve
     // efficiency and clarity, the query operator on the top of the
@@ -147,6 +149,12 @@ public class QryEval {
       } else if (token.equalsIgnoreCase("#sum")) {
         currentOp = new QryopSlSum();
         stack.push(currentOp);
+      } else if (token.equalsIgnoreCase("#wand")) {
+        currentOp = new QryopSlWand();
+        stack.push(currentOp);
+      } else if (token.equalsIgnoreCase("#wsum")) {
+        currentOp = new QryopSlWsum();
+        stack.push(currentOp);
       } else if (token.toLowerCase().startsWith("#near")) {
         currentOp = new QryopIlNear(Integer.parseInt(token.substring(token.indexOf('/') + 1)));
         stack.push(currentOp);
@@ -166,6 +174,10 @@ public class QryEval {
         Qryop arg = currentOp;
         currentOp = stack.peek();
         currentOp.add(arg);
+      } else if (isNumeric(token) && (currentOp != null) && (currentOp.needWeight())
+          && (!hasWeight)) {
+        hasWeight = true;
+        weight = Double.parseDouble(token);
       } else {
         // Lexical processing of the token before creating the query term, and check to see whether
         // the token specifies a particular field (e.g., apple.title).
@@ -184,7 +196,9 @@ public class QryEval {
           return null;
         } else if (processedToken.length > 0) {
           currentOp.add(new QryopIlTerm(processedToken[0], tokenAndField[1]));
+          currentOp.addWeight(weight);
         }
+        hasWeight = false;
       }
     }
 
@@ -199,7 +213,6 @@ public class QryEval {
   }
 
 
-
   /**
    * Given a query string, returns the terms one at a time with stopwords removed and the terms
    * stemmed using the Krovetz stemmer.
@@ -210,7 +223,7 @@ public class QryEval {
    * @return Array of query tokens
    * @throws IOException
    */
-  private static String[] tokenizeQuery(String query) throws IOException {
+  static String[] tokenizeQuery(String query) throws IOException {
 
     TokenStreamComponents comp = analyzer.createComponents("dummy", new StringReader(query));
     TokenStream tokenStream = comp.getTokenStream();
@@ -254,11 +267,13 @@ public class QryEval {
     return params;
   }
 
-  /**
+  /*
    * Get the retrieval model with parameters.
    * 
    * @param params A map of parameters for the search engine
+   * 
    * @return A retrieval model, or null if no model matched
+   * 
    * @throws IOException
    */
   private static RetrievalModel getModel(Map<String, String> params) throws IOException {
@@ -293,7 +308,7 @@ public class QryEval {
    * @param result Result of the query
    * @throws IOException
    */
-  private static void writeResults(BufferedWriter writer, String queryId, QryResult result)
+  static void writeResults(BufferedWriter writer, String queryId, QryResult result)
       throws IOException {
 
     if (result.docScores.scores.size() < 1) {
@@ -355,6 +370,21 @@ public class QryEval {
     } else {
       return hits[0].doc;
     }
+  }
+
+  /*
+   * Check whether a String is a number.
+   * 
+   * @param str The String to be tested.
+   */
+  @SuppressWarnings("unused")
+  private static boolean isNumeric(String str) {
+    try {
+      double d = Double.parseDouble(str);
+    } catch (NumberFormatException e) {
+      return false;
+    }
+    return true;
   }
 
   /**

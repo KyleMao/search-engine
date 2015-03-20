@@ -68,4 +68,14 @@ public class QryopIlTerm extends QryopIl {
   public String toString() {
     return (this.term + "." + this.field);
   }
+
+  @Override
+  public void addWeight(double w) throws IOException {
+  }
+
+  @Override
+  public boolean needWeight() {
+    return false;
+  }
+  
 }

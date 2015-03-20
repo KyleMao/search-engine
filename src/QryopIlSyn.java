@@ -147,4 +147,14 @@ public class QryopIlSyn extends QryopIl {
 
     return ("#SYN( " + result + ")");
   }
+
+  @Override
+  public void addWeight(double w) throws IOException {
+  }
+
+  @Override
+  public boolean needWeight() {
+    return false;
+  }
+  
 }

@@ -179,4 +179,13 @@ public class QryopIlWindow extends QryopIl {
     return argPtr.invList.postings.get(argPtr.nextDoc).positions;
   }
 
+  @Override
+  public void addWeight(double w) throws IOException {
+  }
+
+  @Override
+  public boolean needWeight() {
+    return false;
+  }
+
 }

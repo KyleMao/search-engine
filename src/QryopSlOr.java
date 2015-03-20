@@ -132,4 +132,13 @@ public class QryopSlOr extends QryopSl {
     return ("#OR( " + result + ")");
   }
 
+  @Override
+  public void addWeight(double w) throws IOException {
+  }
+
+  @Override
+  public boolean needWeight() {
+    return false;
+  }
+
 }
