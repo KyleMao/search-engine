@@ -125,7 +125,6 @@ public class QryEval {
     // Tokenize the query.
     StringTokenizer tokens = new StringTokenizer(qString, "\t\n\r ,()", true);
     String token = null;
-    boolean hasWeight = false;
 
     // Each pass of the loop processes one token. To improve
     // efficiency and clarity, the query operator on the top of the
@@ -173,9 +172,7 @@ public class QryEval {
         Qryop arg = currentOp;
         currentOp = stack.peek();
         currentOp.add(arg);
-      } else if (isNumeric(token) && (currentOp != null) && (currentOp.needWeight())
-          && (!hasWeight)) {
-        hasWeight = true;
+      } else if (isNumeric(token) && (currentOp != null) && (currentOp.needWeight())) {
         currentOp.addWeight(Double.parseDouble(token));
       } else {
         // Lexical processing of the token before creating the query term, and check to see whether
@@ -195,10 +192,9 @@ public class QryEval {
           return null;
         } else if (processedToken.length > 0) {
           currentOp.add(new QryopIlTerm(processedToken[0], tokenAndField[1]));
-        } else if (hasWeight) {
+        } else if (!currentOp.needWeight()) {
           currentOp.removeWeight();
         }
-        hasWeight = false;
       }
     }
 
