@@ -35,6 +35,20 @@ public class QryopSlWsum extends QryopSl {
    */
   @Override
   public double getDefaultScore(RetrievalModel r, long docid) throws IOException {
+    if (r instanceof RetrievalModelIndri) {
+      double sumW = 0.0;
+      for (Double w : weights) {
+        sumW += w;
+      }
+      double docScore = 0.0;
+      for (int i = 0; i < args.size(); i++) {
+        Qryop arg = args.get(i);
+        double p = ((QryopSl) arg).getDefaultScore(r, docid);
+        docScore += p * weights.get(i) / sumW;
+      }
+      return docScore;
+    }
+
     return 0.0;
   }
 
