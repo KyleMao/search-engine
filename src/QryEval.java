@@ -78,6 +78,11 @@ public class QryEval {
     }
     BufferedWriter writer = new BufferedWriter(new FileWriter(evalOut.getAbsoluteFile()));
 
+    QryEvalFb queryFb = null;
+    if (params.containsKey("fb") && params.get("fb").equals("true")) {
+      queryFb = new QryEvalFb(params, model);
+    }
+    
     // perform the queries
     Scanner in = new Scanner(new BufferedReader(new FileReader(params.get("queryFilePath"))));
     while (in.hasNextLine()) {
@@ -85,7 +90,12 @@ public class QryEval {
       String queryId = qLine.substring(0, qLine.indexOf(':'));
       String query = qLine.substring(qLine.indexOf(':') + 1);
       Qryop qTree = parseQuery(query, model);
-      QryResult result = qTree.evaluate(model);
+      QryResult result = null;
+      if (params.containsKey("fb") && params.get("fb").equals("true") ) {
+        result = queryFb.evaluate(qTree, queryId);
+      } else {
+        result = qTree.evaluate(model);
+      }
       writeResults(writer, queryId, result);
     }
     in.close();
