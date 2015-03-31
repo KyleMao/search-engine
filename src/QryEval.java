@@ -170,8 +170,10 @@ public class QryEval {
         if (stack.empty())
           break;
         Qryop arg = currentOp;
-        currentOp = stack.peek();
-        currentOp.add(arg);
+        if (arg.args.size() > 0) {
+          currentOp = stack.peek();
+          currentOp.add(arg);
+        }
       } else if (isNumeric(token) && (currentOp != null) && (currentOp.needWeight())) {
         currentOp.addWeight(Double.parseDouble(token));
       } else {
