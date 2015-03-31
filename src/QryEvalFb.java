@@ -3,11 +3,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 
 /**
@@ -81,7 +83,7 @@ public class QryEvalFb {
    * @throws Exception
    */
   public QryResult evaluate(Qryop qTree, String queryId) throws Exception {
-    
+
     Map<Integer, Double> indriDocScores = new HashMap<Integer, Double>();
     if (hasInitialRankings) {
       for (String ranking : initialRankings.get(queryId)) {
@@ -95,31 +97,66 @@ public class QryEvalFb {
             docScore.getDocidScore(i));
       }
     }
-    
+
     String expansionQuery = expandQuery(qTree, indriDocScores);
-    
+
+    System.out.println(expansionQuery);
+
     return null;
   }
-  
+
   /*
    * Expand the query using relevance feedback.
    */
   private String expandQuery(Qryop qTree, Map<Integer, Double> indriDocScores) throws IOException {
-    
+
+    double colLen = QryEval.READER.getSumTotalTermFreq("body");
+
+    Map<String, Double> expansionTermWeights = new HashMap<String, Double>();
+
     for (Entry<Integer, Double> docScoreEntry : indriDocScores.entrySet()) {
       int docId = docScoreEntry.getKey();
-      double docScore = docScoreEntry.getValue();
+      double p_I_d = docScoreEntry.getValue();
+      double docLen = QryEval.dls.getDocLength("body", docId);
       TermVector termVector = new TermVector(docId, "body");
-      
-      for (int i = 0; i < termVector.stemsLength(); i++) {
+
+      for (int i = 1; i < termVector.stemsLength(); i++) {
         String stem = termVector.stemString(i);
-        
+
         double tf = termVector.stemFreq(i);
         double ctf = termVector.totalStemFreq(i);
+        double p_mle = ctf / colLen;
+        double p_t_d = (tf + fbMu * p_mle) / (docLen + fbMu);
+        double idf = Math.log(colLen / ctf);
+
+        if (expansionTermWeights.containsKey(stem)) {
+          expansionTermWeights.put(stem, expansionTermWeights.get(stem) + p_t_d * p_I_d * idf);
+        } else {
+          expansionTermWeights.put(stem, p_t_d * p_I_d * idf);
+        }
       }
     }
-    
-    return null;
+
+    PriorityQueue<Entry<String, Double>> termHeap =
+        new PriorityQueue<Map.Entry<String, Double>>(expansionTermWeights.size(),
+            new Comparator<Entry<String, Double>>() {
+              @Override
+              public int compare(Entry<String, Double> o1, Entry<String, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+              }
+            });
+
+    for (Entry<String, Double> termWeightEntry : expansionTermWeights.entrySet()) {
+      termHeap.add(termWeightEntry);
+    }
+
+    StringBuffer queryBuffer = new StringBuffer();
+    for (int i = 0; i < fbTerms; i++) {
+      Entry<String, Double> termHeapEntry = termHeap.remove();
+      queryBuffer.append(termHeapEntry.getValue() + " " + termHeapEntry.getKey() + " ");
+    }
+
+    return "#wand (" + queryBuffer.toString() + ')';
   }
 
 }
