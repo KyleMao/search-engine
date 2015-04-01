@@ -198,20 +198,18 @@ public class QryEval {
         String[] termAndField = token.split("\\.");
         String term;
         String field;
-        if (termAndField.length > 2) {
-          System.err.println("Error: Invalid query term.");
-          return null;
-        } else if (termAndField.length == 2) {
-          term = termAndField[0];
+        if (termAndField.length == 2) {
           field = termAndField[1];
           if (!(field.equalsIgnoreCase("url") || field.equalsIgnoreCase("keywords")
               || field.equalsIgnoreCase("title") || field.equalsIgnoreCase("body")
               || field.equalsIgnoreCase("inlink"))) {
-            field = "body";
             term = token;
+            field = "body";
+          } else {
+            term = termAndField[0];
           }
         } else {
-          term = termAndField[0];
+          term = token;
           field = "body";
         }
 
