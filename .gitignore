@@ -9,6 +9,5 @@ bin/
 INPUT_DIR/
 TEST_DIR/
 OUTPUT_DIR/
-Sample.teIn
-Sample.qry
+scripts/
 *.param
