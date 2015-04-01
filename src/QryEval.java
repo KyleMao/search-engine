@@ -78,6 +78,7 @@ public class QryEval {
     }
     BufferedWriter writer = new BufferedWriter(new FileWriter(evalOut.getAbsoluteFile()));
 
+    // for relevance feedback
     QryEvalFb queryFb = null;
     if (params.containsKey("fb") && params.get("fb").equals("true")) {
       queryFb = new QryEvalFb(params, model);
@@ -101,6 +102,7 @@ public class QryEval {
     in.close();
     writer.close();
     
+    // for relevance feedback
     if (params.containsKey("fb") && params.get("fb").equals("true")) {
       queryFb.finish();
     }

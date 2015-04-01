@@ -1,3 +1,10 @@
+/**
+ * This class implements the Indri relevance feedback and pseudo relevance feedback methods
+ * 
+ * @author KyleMao
+ * 
+ */
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -12,15 +19,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Scanner;
-
-import org.apache.lucene.analysis.hunspell.HunspellStemmer.Stem;
-
-/**
- * This class implements the Indri relevance feedback and pseudo relevance feedback methods
- * 
- * @author KyleMao
- * 
- */
 
 public class QryEvalFb {
 
@@ -43,10 +41,12 @@ public class QryEvalFb {
    */
   public QryEvalFb(Map<String, String> params, RetrievalModel model) throws IOException {
 
+    // Check if the retrieval model is Indri, if not, throw exception
     if (!(model instanceof RetrievalModelIndri)) {
       throw new RuntimeException();
     }
 
+    // Read the needed parameters
     this.model = model;
     this.fbDocs = Integer.parseInt(params.get("fbDocs"));
     this.fbTerms = Integer.parseInt(params.get("fbTerms"));
@@ -59,6 +59,7 @@ public class QryEvalFb {
       this.fbExpansionQueryWriter = null;
     }
 
+    // Read the initial ranking file if available
     if (params.containsKey("fbInitialRankingFile")) {
       this.hasInitialRankings = true;
       this.initialRankings = new HashMap<String, List<String>>();
@@ -88,6 +89,7 @@ public class QryEvalFb {
    * @throws IOException
    */
   public void finish() throws IOException {
+
     if (fbExpansionQueryWriter != null) {
       fbExpansionQueryWriter.close();
     }
@@ -103,13 +105,16 @@ public class QryEvalFb {
    */
   public QryResult evaluate(Qryop qTree, String queryId, String query) throws Exception {
 
+    // A map from internal document ID to its initial Indri score
     Map<Integer, Double> indriDocScores = new HashMap<Integer, Double>();
     if (hasInitialRankings) {
+      // Get the scores from the initial ranking file
       for (String ranking : initialRankings.get(queryId)) {
         String[] parts = ranking.split(" ");
         indriDocScores.put(QryEval.getInternalDocid(parts[2]), Double.parseDouble(parts[4]));
       }
     } else {
+      // Use the initial query to retrieve documents and then get the scores
       DocScore docScore = new DocScore(qTree.evaluate(model));
       for (int i = 0; i < fbDocs && i < docScore.scores.size(); i++) {
         indriDocScores.put(QryEval.getInternalDocid(docScore.getExternalDocid(i)),
@@ -117,17 +122,19 @@ public class QryEvalFb {
       }
     }
 
+    // Perform query expansion
     String expansionQuery = expandQuery(qTree, indriDocScores);
 
+    // Write the expansion query to a file if needed
     if (fbExpansionQueryWriter != null) {
       fbExpansionQueryWriter.write(queryId + ": " + expansionQuery + '\n');
     }
 
-    String expandedQuery =
+    // Create a combined query and use the combined query to retrieve documents
+    String combinedQuery =
         "#WAND(" + fbOrigWeight + " #AND(" + query + ") " + (1 - fbOrigWeight) + " "
             + expansionQuery + ")";
-
-    Qryop expandedQTree = QryEval.parseQuery(expandedQuery, model);
+    Qryop expandedQTree = QryEval.parseQuery(combinedQuery, model);
     QryResult result = expandedQTree.evaluate(model);
 
     return result;
@@ -140,14 +147,18 @@ public class QryEvalFb {
 
     double colLen = QryEval.READER.getSumTotalTermFreq("body");
 
+    // A map from expansion terms to their weigthts
     Map<String, Double> expansionTermWeights = new HashMap<String, Double>();
+    // A map from expansion terms to ther ctf's
     Map<String, Long> ctfMap = new HashMap<String, Long>();
+    // A map from expansion terms to their completed file counts
     Map<String, Integer> termFileCount = new HashMap<String, Integer>();
-    
+
+    // First pass through the terms to gather all terms
     for (Entry<Integer, Double> docScoreEntry : indriDocScores.entrySet()) {
       int docId = docScoreEntry.getKey();
       TermVector termVector = new TermVector(docId, "body");
-      
+
       for (int i = 1; i < termVector.stemsLength(); i++) {
         String stem = termVector.stemString(i);
         if (!termFileCount.containsKey(stem)) {
@@ -158,6 +169,7 @@ public class QryEvalFb {
       }
     }
 
+    // Second pass through all terms, calculate the term weigts
     int docNum = 0;
     for (Entry<Integer, Double> docScoreEntry : indriDocScores.entrySet()) {
       docNum++;
@@ -166,6 +178,7 @@ public class QryEvalFb {
       double docLen = QryEval.dls.getDocLength("body", docId);
       TermVector termVector = new TermVector(docId, "body");
 
+      // If term is in a document, add its score to the weights
       for (int i = 1; i < termVector.stemsLength(); i++) {
         String stem = termVector.stemString(i);
 
@@ -174,25 +187,27 @@ public class QryEvalFb {
         double p_mle = ctf / colLen;
         double p_t_d = (tf + fbMu * p_mle) / (docLen + fbMu);
         double idf = Math.log(colLen / ctf);
-        
+
         expansionTermWeights.put(stem, expansionTermWeights.get(stem) + p_t_d * p_I_d * idf);
-        termFileCount.put(stem, termFileCount.get(stem)+1);
+        termFileCount.put(stem, termFileCount.get(stem) + 1);
       }
-      
+
+      // If term is not in this document, add its default score to the weights
       for (Entry<String, Double> termWeightEntry : expansionTermWeights.entrySet()) {
         String stem = termWeightEntry.getKey();
         if (termFileCount.get(stem) < docNum) {
           double ctf = ctfMap.get(stem);
           double p_mle = ctf / colLen;
-          double p_t_d = ((double)fbMu * p_mle) / (docLen + fbMu);
+          double p_t_d = ((double) fbMu * p_mle) / (docLen + fbMu);
           double idf = Math.log(colLen / ctf);
-          
+
           expansionTermWeights.put(stem, expansionTermWeights.get(stem) + p_t_d * p_I_d * idf);
-          termFileCount.put(stem, termFileCount.get(stem)+1);
+          termFileCount.put(stem, termFileCount.get(stem) + 1);
         }
       }
     }
 
+    // Use a max heap to store the scores and get the top fbTerms terms
     PriorityQueue<Entry<String, Double>> termHeap =
         new PriorityQueue<Map.Entry<String, Double>>(expansionTermWeights.size(),
             new Comparator<Entry<String, Double>>() {
@@ -206,6 +221,7 @@ public class QryEvalFb {
       termHeap.add(termWeightEntry);
     }
 
+    // Build the expansion query string
     StringBuffer queryBuffer = new StringBuffer();
     for (int i = 0; i < fbTerms; i++) {
       Entry<String, Double> termHeapEntry = termHeap.remove();
