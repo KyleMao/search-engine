@@ -11,3 +11,4 @@ TEST_DIR/
 OUTPUT_DIR/
 scripts/
 *.param
+*.py
