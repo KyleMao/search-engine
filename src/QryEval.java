@@ -83,7 +83,7 @@ public class QryEval {
     if (params.containsKey("fb") && params.get("fb").equals("true")) {
       queryFb = new QryEvalFb(params, model);
     }
-    
+
     // perform the queries
     Scanner in = new Scanner(new BufferedReader(new FileReader(params.get("queryFilePath"))));
     while (in.hasNextLine()) {
@@ -92,7 +92,7 @@ public class QryEval {
       String query = qLine.substring(qLine.indexOf(':') + 1);
       Qryop qTree = parseQuery(query, model);
       QryResult result = null;
-      if (params.containsKey("fb") && params.get("fb").equals("true") ) {
+      if (params.containsKey("fb") && params.get("fb").equals("true")) {
         result = queryFb.evaluate(qTree, queryId, query);
       } else {
         result = qTree.evaluate(model);
@@ -101,7 +101,7 @@ public class QryEval {
     }
     in.close();
     writer.close();
-    
+
     // for relevance feedback
     if (params.containsKey("fb") && params.get("fb").equals("true")) {
       queryFb.finish();
@@ -195,21 +195,32 @@ public class QryEval {
       } else {
         // Lexical processing of the token before creating the query term, and check to see whether
         // the token specifies a particular field (e.g., apple.title).
-        if (!token.contains(".")) {
-          token += ".body";
-        }
-        String[] tokenAndField = token.split("\\.");
-        if (tokenAndField.length > 2) {
+        String[] termAndField = token.split("\\.");
+        String term;
+        String field;
+        if (termAndField.length > 2) {
           System.err.println("Error: Invalid query term.");
           return null;
+        } else if (termAndField.length == 2) {
+          term = termAndField[0];
+          field = termAndField[1];
+          if (!(field.equalsIgnoreCase("url") || field.equalsIgnoreCase("keywords")
+              || field.equalsIgnoreCase("title") || field.equalsIgnoreCase("body")
+              || field.equalsIgnoreCase("inlink"))) {
+            field = "body";
+            term = token;
+          }
+        } else {
+          term = termAndField[0];
+          field = "body";
         }
 
-        String[] processedToken = tokenizeQuery(tokenAndField[0]);
+        String[] processedToken = tokenizeQuery(term);
         if (processedToken.length > 1) {
           System.err.println("Error: Invalid query term.");
           return null;
         } else if (processedToken.length > 0) {
-          currentOp.add(new QryopIlTerm(processedToken[0], tokenAndField[1]));
+          currentOp.add(new QryopIlTerm(processedToken[0], field));
         } else if (!currentOp.needWeight()) {
           currentOp.removeWeight();
         }
