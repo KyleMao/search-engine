@@ -13,6 +13,8 @@ import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Scanner;
 
+import org.apache.lucene.analysis.hunspell.HunspellStemmer.Stem;
+
 /**
  * This class implements the Indri relevance feedback and pseudo relevance feedback methods
  * 
@@ -25,7 +27,7 @@ public class QryEvalFb {
   private RetrievalModel model;
   private int fbDocs;
   private int fbTerms;
-  private double fbMu;
+  private int fbMu;
   private double fbOrigWeight;
   private BufferedWriter fbExpansionQueryWriter;
   private boolean hasInitialRankings;
@@ -48,7 +50,7 @@ public class QryEvalFb {
     this.model = model;
     this.fbDocs = Integer.parseInt(params.get("fbDocs"));
     this.fbTerms = Integer.parseInt(params.get("fbTerms"));
-    this.fbMu = Double.parseDouble(params.get("fbMu"));
+    this.fbMu = Integer.parseInt(params.get("fbMu"));
     this.fbOrigWeight = Double.parseDouble(params.get("fbOrigWeight"));
     if (params.containsKey("fbExpansionQueryFile")) {
       this.fbExpansionQueryWriter =
@@ -82,7 +84,8 @@ public class QryEvalFb {
 
   /**
    * Clean up the QryEvalFb object.
-   * @throws IOException 
+   * 
+   * @throws IOException
    */
   public void finish() throws IOException {
     if (fbExpansionQueryWriter != null) {
@@ -138,8 +141,26 @@ public class QryEvalFb {
     double colLen = QryEval.READER.getSumTotalTermFreq("body");
 
     Map<String, Double> expansionTermWeights = new HashMap<String, Double>();
-
+    Map<String, Long> ctfMap = new HashMap<String, Long>();
+    Map<String, Integer> termFileCount = new HashMap<String, Integer>();
+    
     for (Entry<Integer, Double> docScoreEntry : indriDocScores.entrySet()) {
+      int docId = docScoreEntry.getKey();
+      TermVector termVector = new TermVector(docId, "body");
+      
+      for (int i = 1; i < termVector.stemsLength(); i++) {
+        String stem = termVector.stemString(i);
+        if (!termFileCount.containsKey(stem)) {
+          termFileCount.put(stem, 0);
+          expansionTermWeights.put(stem, 0.0);
+          ctfMap.put(stem, termVector.totalStemFreq(i));
+        }
+      }
+    }
+
+    int docNum = 0;
+    for (Entry<Integer, Double> docScoreEntry : indriDocScores.entrySet()) {
+      docNum++;
       int docId = docScoreEntry.getKey();
       double p_I_d = docScoreEntry.getValue();
       double docLen = QryEval.dls.getDocLength("body", docId);
@@ -149,15 +170,25 @@ public class QryEvalFb {
         String stem = termVector.stemString(i);
 
         double tf = termVector.stemFreq(i);
-        double ctf = termVector.totalStemFreq(i);
+        double ctf = ctfMap.get(stem);
         double p_mle = ctf / colLen;
         double p_t_d = (tf + fbMu * p_mle) / (docLen + fbMu);
         double idf = Math.log(colLen / ctf);
-
-        if (expansionTermWeights.containsKey(stem)) {
+        
+        expansionTermWeights.put(stem, expansionTermWeights.get(stem) + p_t_d * p_I_d * idf);
+        termFileCount.put(stem, termFileCount.get(stem)+1);
+      }
+      
+      for (Entry<String, Double> termWeightEntry : expansionTermWeights.entrySet()) {
+        String stem = termWeightEntry.getKey();
+        if (termFileCount.get(stem) < docNum) {
+          double ctf = ctfMap.get(stem);
+          double p_mle = ctf / colLen;
+          double p_t_d = ((double)fbMu * p_mle) / (docLen + fbMu);
+          double idf = Math.log(colLen / ctf);
+          
           expansionTermWeights.put(stem, expansionTermWeights.get(stem) + p_t_d * p_I_d * idf);
-        } else {
-          expansionTermWeights.put(stem, p_t_d * p_I_d * idf);
+          termFileCount.put(stem, termFileCount.get(stem)+1);
         }
       }
     }
