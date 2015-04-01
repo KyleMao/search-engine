@@ -1,11 +1,12 @@
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,7 +27,7 @@ public class QryEvalFb {
   private int fbTerms;
   private double fbMu;
   private double fbOrigWeight;
-  private String fbExpansionQueryFile;
+  private BufferedWriter fbExpansionQueryWriter;
   private boolean hasInitialRankings;
   private Map<String, List<String>> initialRankings;
 
@@ -36,9 +37,9 @@ public class QryEvalFb {
    * 
    * @param params Parameters for this query set.
    * @param model The retrieval model used.
-   * @throws FileNotFoundException
+   * @throws IOException
    */
-  public QryEvalFb(Map<String, String> params, RetrievalModel model) throws FileNotFoundException {
+  public QryEvalFb(Map<String, String> params, RetrievalModel model) throws IOException {
 
     if (!(model instanceof RetrievalModelIndri)) {
       throw new RuntimeException();
@@ -49,7 +50,12 @@ public class QryEvalFb {
     this.fbTerms = Integer.parseInt(params.get("fbTerms"));
     this.fbMu = Double.parseDouble(params.get("fbMu"));
     this.fbOrigWeight = Double.parseDouble(params.get("fbOrigWeight"));
-    this.fbExpansionQueryFile = params.get("fbExpansionQeuryFile");
+    if (params.containsKey("fbExpansionQueryFile")) {
+      this.fbExpansionQueryWriter =
+          new BufferedWriter(new FileWriter(new File(params.get("fbExpansionQueryFile"))));
+    } else {
+      this.fbExpansionQueryWriter = null;
+    }
 
     if (params.containsKey("fbInitialRankingFile")) {
       this.hasInitialRankings = true;
@@ -75,6 +81,16 @@ public class QryEvalFb {
   }
 
   /**
+   * Clean up the QryEvalFb object.
+   * @throws IOException 
+   */
+  public void finish() throws IOException {
+    if (fbExpansionQueryWriter != null) {
+      fbExpansionQueryWriter.close();
+    }
+  }
+
+  /**
    * Evaluate the query, and returns the result.
    * 
    * @param qTree The query tree.
@@ -82,7 +98,7 @@ public class QryEvalFb {
    * @return Query result.
    * @throws Exception
    */
-  public QryResult evaluate(Qryop qTree, String queryId) throws Exception {
+  public QryResult evaluate(Qryop qTree, String queryId, String query) throws Exception {
 
     Map<Integer, Double> indriDocScores = new HashMap<Integer, Double>();
     if (hasInitialRankings) {
@@ -100,9 +116,18 @@ public class QryEvalFb {
 
     String expansionQuery = expandQuery(qTree, indriDocScores);
 
-    System.out.println(expansionQuery);
+    if (fbExpansionQueryWriter != null) {
+      fbExpansionQueryWriter.write(queryId + ": " + expansionQuery + '\n');
+    }
 
-    return null;
+    String expandedQuery =
+        "#WAND(" + fbOrigWeight + " #AND(" + query + ") " + (1 - fbOrigWeight) + " "
+            + expansionQuery + ")";
+
+    Qryop expandedQTree = QryEval.parseQuery(expandedQuery, model);
+    QryResult result = expandedQTree.evaluate(model);
+
+    return result;
   }
 
   /*
@@ -156,7 +181,7 @@ public class QryEvalFb {
       queryBuffer.append(termHeapEntry.getValue() + " " + termHeapEntry.getKey() + " ");
     }
 
-    return "#wand (" + queryBuffer.toString() + ')';
+    return "#WAND( " + queryBuffer.toString() + ')';
   }
 
 }

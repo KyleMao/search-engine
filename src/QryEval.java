@@ -92,7 +92,7 @@ public class QryEval {
       Qryop qTree = parseQuery(query, model);
       QryResult result = null;
       if (params.containsKey("fb") && params.get("fb").equals("true") ) {
-        result = queryFb.evaluate(qTree, queryId);
+        result = queryFb.evaluate(qTree, queryId, query);
       } else {
         result = qTree.evaluate(model);
       }
@@ -100,6 +100,10 @@ public class QryEval {
     }
     in.close();
     writer.close();
+    
+    if (params.containsKey("fb") && params.get("fb").equals("true")) {
+      queryFb.finish();
+    }
 
     // print running time and memory usage
     long endTime = System.currentTimeMillis();
@@ -115,7 +119,7 @@ public class QryEval {
    * @return currentOp
    * @throws IOException
    */
-  private static Qryop parseQuery(String qString, RetrievalModel r) throws IOException {
+  protected static Qryop parseQuery(String qString, RetrievalModel r) throws IOException {
 
     Qryop currentOp = null;
     Stack<Qryop> stack = new Stack<Qryop>();
@@ -125,11 +129,11 @@ public class QryEval {
     qString = qString.trim();
     // Add default operator for different retrieval models
     if (r instanceof RetrievalModelUnrankedBoolean || r instanceof RetrievalModelRankedBoolean) {
-      qString = "#or(" + qString + ")";
+      qString = "#OR(" + qString + ")";
     } else if (r instanceof RetrievalModelIndri) {
-      qString = "#and(" + qString + ")";
+      qString = "#AND(" + qString + ")";
     } else if (r instanceof RetrievalModelBM25) {
-      qString = "#sum(" + qString + ")";
+      qString = "#SUM(" + qString + ")";
     }
 
     // Tokenize the query.
